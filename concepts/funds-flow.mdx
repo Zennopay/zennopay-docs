@@ -3,7 +3,93 @@ title: "Funds flow"
 description: "USD pre-fund → FX → THB/VND payout. Where the money sits at every step."
 ---
 
-<Note>
-  Coming soon. This page will explain Zennopay's USD-only custody posture,
-  FBO account model, and provider settlement cadence. 🚧
-</Note>
+Zennopay operates in **USD only**. We never hold THB or VND. Local-currency
+conversion is the payout provider's responsibility, not ours.
+
+## The five accounts that matter
+
+Every transaction touches some subset of these accounts. All are USD-denominated.
+
+| Account | What it holds |
+|---|---|
+| **Partner FBO (at Unit)** | USD the partner has pre-funded for its end users. Held in a For-Benefit-Of account at Zennopay's US banking partner. Restricted custody. |
+| **Partner FBO liability** | The offsetting liability — Zennopay's obligation to return the partner's pre-funded balance. Always equals the FBO cash balance. |
+| **GLN pre-funded receivable** | USD Zennopay has pre-funded to GLN's account; drawn down as Thai transactions settle. |
+| **9pay pre-funded receivable** | USD Zennopay has pre-funded to 9pay; drawn down as Vietnamese transactions settle. |
+| **Zennopay commercial** | Where Zennopay's margin lands after the daily sweep from FBO. Operating income. |
+
+## Custody posture
+
+- Zennopay holds USD in an FBO account at our partner bank (Unit). The funds
+  remain attributable to the partner — and beneficially to the partner's end
+  users — at all times. Zennopay holds them in trust-like fashion.
+- Zennopay is a US Delaware C-Corp registered with FinCEN as a Money Services
+  Business (MSB), operating as a **payment facilitator (agent of payee)**.
+- Zennopay is **not** an e-money institution. We never co-mingle partner FBO
+  funds with operating funds.
+- We are USD-only. Any FX is handled by the payout provider downstream.
+
+## A $100 transaction, step by step
+
+For a `$100` transaction via GLN (Thailand corridor):
+
+| Player | What changes |
+|---|---|
+| End user | Sees `$100 USD` in their partner-app wallet decrease. Sees THB equivalent paid to merchant. |
+| Partner FBO | Drops by `$101.50` (`$100` user value + `$1.50` Zennopay margin). |
+| Zennopay margin accrual | Rises by `$1.50`. Swept to commercial at end of day. |
+| GLN pre-funded receivable | Drops by `$99.00` (the `$100` Zennopay sends GLN, minus GLN's `$1.00` fee that stays inside GLN's books). |
+| GLN expense | Rises by `$1.00` (GLN's per-tx fee). |
+| Thai merchant | Receives THB equivalent of `$99.00` at GLN's quoted FX rate. |
+
+In ledger terms, the journal entry at provider success looks like:
+
+```text
+                                  DEBIT       CREDIT
+  clearing.in_flight                          $101.50
+  receivables.gln.pre_funded       $99.00
+  expense.provider_fee.gln         $1.00
+  receivables.zennopay.margin      $1.50
+                                  ───────     ───────
+                                  $101.50     $101.50
+```
+
+The `clearing.in_flight` account was loaded earlier when the partner FBO was
+debited; it zeros out here when the provider confirms success.
+
+## When things fail
+
+| Scenario | What happens to funds |
+|---|---|
+| Partner auth declines before debit | Nothing moves. The intent is logged as `failed`. |
+| Provider returns failure after FBO debit | The FBO debit is reversed. No margin recognized, no provider fee incurred. |
+| Provider succeeded, then settlement reported failed (CAPTURE_REVERSED) | Step-by-step reversal. Net: partner FBO restored, GLN pre-funding restored, no margin, no fee. The intent ends in `failed` and we emit a `payment_intent.failed` webhook. |
+| User-initiated refund within provider window (T+7 for GLN, T+1 for 9pay) | GLN/9pay refund the merchant; Zennopay reverses the margin and credits the partner FBO. |
+| Refund requested after the provider window | Provider rejects. From Zennopay's books, no entries. Commercial-side resolution between partner and end user. |
+
+The full T-account walkthrough lives in Zennopay's internal ledger spec and
+is dry-run against the live ledger at each daily close.
+
+## Pre-funding cadence
+
+| Movement | Trigger | Frequency |
+|---|---|---|
+| Partner → Partner FBO (top-up) | Float < 1.2× daily burn | On demand; partner-initiated |
+| Zennopay commercial → GLN pre-fund | GLN pre-fund < 1.2× daily burn | Daily, automatic |
+| Zennopay commercial → 9pay pre-fund | 9pay pre-fund < 1.2× daily burn | Daily, automatic |
+| Partner FBO → Zennopay commercial (margin sweep) | End of day | Daily, automatic |
+
+Pre-funding shortfalls are caught by monitoring that fires before they
+actually go below the daily burn threshold. We do not run out of float
+mid-day for a partner in good standing.
+
+## What you receive as a partner
+
+- A **monthly statement** showing transaction count, gross TPV, gross margin,
+  and any commitment-fee passthroughs.
+- A **reconciliation report** per corridor, comparing Zennopay's ledger
+  against the provider's settlement CSV.
+- A **monthly invoice** for any commitment fees due.
+
+See [Settlement & reconciliation](/concepts/settlement) for cadence and
+break-resolution flow.

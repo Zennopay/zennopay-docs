@@ -1,9 +1,111 @@
 ---
 title: "Settlement & reconciliation"
-description: "How money moves from your float to the merchant, daily."
+description: "How money moves daily, and how mismatches get resolved."
 ---
 
-<Note>
-  Coming soon. This page will document Zennopay's daily settlement cadence,
-  recon report format, and break-resolution flow. 🚧
-</Note>
+Zennopay runs daily settlement against both payout providers and a daily
+reconciliation pass against the partner FBO. Everything balances by end of
+day, or it lands in a break queue for ops review.
+
+## The daily cycle
+
+```text
+Throughout the day:
+  - Transactions debit Partner FBO; provider success drains the
+    pre-funded receivable; margin accrues in `receivables.zennopay.margin`.
+
+End of business day (UTC):
+  1. Margin sweep:  Partner FBO  ───($X total margin)──>  Zennopay commercial
+  2. GLN top-up:    Zennopay commercial  ──(refill float)──>  GLN pre-fund
+  3. 9pay top-up:   Zennopay commercial  ──(refill float)──>  9pay pre-fund
+  4. Reconciliation pass (see below)
+  5. Clearing accounts MUST be $0 — non-zero = ops investigates
+```
+
+## Reconciliation checks
+
+Five assertions run every business day at end-of-day. Each is either green
+or feeds a break queue.
+
+### 1. Bank balance vs ledger
+
+For every Zennopay bank account at Unit, compare the actual balance to the
+cumulative net of all journal entries touching that account. Any non-zero
+delta is a break.
+
+### 2. FBO custody assertion
+
+`cash.fbo:partner` (the FBO bank balance) MUST equal the sum of all
+per-user-attributed sub-balances Zennopay tracks internally. Drift here is
+a **serious incident** — partner funds must always be fully accounted for.
+
+### 3. Provider pre-funding match
+
+`receivables.gln.pre_funded` (Zennopay's ledger) must match GLN's reported
+pre-funding balance from their daily settlement CSV. Same for 9pay.
+
+Threshold for break: **\$0.01 per transaction**. Anything below that is
+absorbed; anything above goes to the ops break queue.
+
+### 4. Clearing accounts at zero
+
+All three clearing accounts MUST be zero at EOD:
+
+- `clearing.in_flight` — transactions mid-flow
+- `clearing.refund_pending` — refunds awaiting provider confirmation
+- `clearing.capture_reversed` — provider success that settlement later reversed
+
+A non-zero balance means something is stuck. Ops investigates.
+
+### 5. Commitment accruals
+
+Daily straight-line accrual against the contractual commitment schedule.
+Compared against the contract; mismatches indicate a clock or schedule bug.
+
+## Stuck transactions
+
+If a transaction is stuck mid-flow — provider API timed out, no confirmation
+either way — Zennopay holds the entry in `clearing.in_flight` and runs a
+status-query against the provider's API periodically.
+
+If still ambiguous after 24 hours, the transaction escalates to manual ops
+review. The partner sees the intent in `processing` state until resolved;
+the SDK surfaces "pending" to the end user.
+
+## Period close
+
+| Cadence | What happens |
+|---|---|
+| **Daily** | The five reconciliation checks above; clearing accounts zeroed; provider drawdowns top up |
+| **Monthly** | Commitment accruals trued up; partner statements + invoices generated; bank statements reconciled |
+| **Quarterly** | Tax provisioning; provider commitment tier recalculation |
+| **Annually** | Audit prep; full event log made available for replay |
+
+## Reports the partner receives
+
+- **Daily transaction summary** — per-corridor gross TPV, gross margin,
+  provider fees, net margin, recon-break count.
+- **Monthly statement** — P&L-style summary for the period.
+- **Monthly invoice** — commitment fees due (if any), with a margin-collected
+  reference summary.
+- **Reconciliation report (per corridor)** — provider CSV vs Zennopay's
+  ledger, with any flagged discrepancies.
+
+## Audit trail
+
+Every state transition on every payment intent is recorded as an immutable,
+timestamped event. The full event log is queryable by `payment_intent_id`
+and is retained for **7 years** per US payment-facilitator industry norm.
+
+Auditors can replay any historical transaction by reading the event log; no
+data is ever overwritten in place.
+
+## Currency precision
+
+All USD values are stored as integer cents internally (`amount_cents`
+columns in Postgres) to avoid floating-point drift. The API returns
+`amount_usd_cents` for the same reason — see [API conventions](/api-reference/overview).
+
+Sub-cent discrepancies from provider FX (sub-$0.01 per transaction) are
+swept to a recon write-off account at EOD; the cumulative amount is tracked
+and surfaced on monthly reports.
