@@ -7,90 +7,62 @@ Zennopay operates in **USD only**. We never hold THB or VND. Local-currency
 conversion happens inside our licensed payout partner network for the
 destination corridor.
 
-## The four account categories that matter
-
-Every transaction touches some subset of these. All Zennopay-side balances
-are USD-denominated.
-
-| Account | What it holds |
-|---|---|
-| **Partner FBO (at Unit)** | USD the partner has pre-funded for its end users. Held in a For-Benefit-Of account at Zennopay's US banking partner. Restricted custody. |
-| **Partner FBO liability** | The offsetting liability — Zennopay's obligation to return the partner's pre-funded balance. Always equals the FBO cash balance. |
-| **Payout-partner pre-funded receivable (per corridor)** | USD Zennopay has pre-funded to its payout partner for the corridor (one balance per corridor); drawn down as transactions in that corridor settle. |
-| **Zennopay commercial** | Where Zennopay's margin lands after the daily sweep from FBO. Operating income. |
-
 ## Custody posture
 
-- Zennopay holds USD in an FBO account at our partner bank (Unit). The funds
-  remain attributable to the partner — and beneficially to the partner's end
-  users — at all times. Zennopay holds them in trust-like fashion.
-- Zennopay is a US Delaware C-Corp registered with FinCEN as a Money Services
-  Business (MSB), operating as a **payment facilitator (agent of payee)**.
-- Zennopay is **not** an e-money institution. We never co-mingle partner FBO
-  funds with operating funds.
+- Partner funds are held in a **For-Benefit-Of (FBO) account** at Zennopay's
+  US banking partner. The funds remain attributable to the partner — and
+  beneficially to the partner's end users — at all times.
+- Zennopay is a US-registered Money Services Business (MSB), operating as a
+  **payment facilitator (agent of payee)**.
+- Zennopay is **not** an e-money institution. Partner FBO funds are never
+  co-mingled with Zennopay operating funds.
 - We are USD-only. All FX happens inside the payout partner network for the
   destination corridor.
 
-## A $100 transaction, step by step
+## How a payment moves
 
-For a `$100` transaction in the Thailand corridor (`th_promptpay`):
+For a payment in the Thailand corridor (`th_promptpay`):
 
-| Player | What changes |
-|---|---|
-| End user | Sees `$100 USD` in their partner-app wallet decrease. Sees THB equivalent paid to merchant. |
-| Partner FBO | Drops by `$101.50` (`$100` user value + `$1.50` Zennopay margin). |
-| Zennopay margin accrual | Rises by `$1.50`. Swept to commercial at end of day. |
-| Payout-partner pre-funded receivable (TH) | Drops by `$99.00` — the `$100` Zennopay sends downstream, minus the corridor's `$1.00` pass-through fee. |
-| Corridor pass-through fee | Rises by `$1.00`. |
-| Thai merchant | Receives THB equivalent of `$99.00` at the payout partner's quoted FX rate. |
+1. The end user authorizes a USD amount in the partner app; their partner-app
+   wallet balance decreases by that amount.
+2. Zennopay debits the partner's pre-funded USD float for the authorized
+   amount plus Zennopay's transparent processing margin.
+3. Zennopay routes the USD downstream to its licensed payout partner for the
+   corridor, which performs the USD → local-currency FX.
+4. The merchant receives the local-currency equivalent (THB for TH, VND for
+   VN) in their QR-registered account.
 
-In ledger terms, the journal entry at payout-partner success looks like:
+The same shape applies to Vietnam (`vn_vietqr`), settling in VND.
 
-```text
-                                            DEBIT       CREDIT
-  clearing.in_flight                                    $101.50
-  receivables.payout_partner.th_promptpay   $99.00
-  expense.provider_fee.th_promptpay         $1.00
-  receivables.zennopay.margin               $1.50
-                                            ───────     ───────
-                                            $101.50     $101.50
-```
-
-The `clearing.in_flight` account was loaded earlier when the partner FBO was
-debited; it zeros out here when the payout partner confirms success.
+<Note>
+  Zennopay's processing margin is disclosed to each partner in their
+  commercial agreement and itemized on monthly statements. It is not exposed
+  in the API.
+</Note>
 
 ## When things fail
 
 | Scenario | What happens to funds |
 |---|---|
 | Partner auth declines before debit | Nothing moves. The intent is logged as `failed`. |
-| Payout partner returns failure after FBO debit | The FBO debit is reversed. No margin recognized, no pass-through fee incurred. |
-| Payout-partner success, then settlement reported failed (CAPTURE_REVERSED) | Step-by-step reversal. Net: partner FBO restored, payout-partner pre-funding restored, no margin, no fee. The intent ends in `failed` and we emit a `payment_intent.failed` webhook. |
-| User-initiated refund within the corridor's refund window (T+7 for TH, T+1 for VN) | The downstream payout partner refunds the merchant; Zennopay reverses the margin and credits the partner FBO. |
-| Refund requested after the corridor's refund window | Payout partner rejects. From Zennopay's books, no entries. Commercial-side resolution between partner and end user. |
+| Payout partner returns failure after the USD debit | The debit is reversed. No margin recognized. |
+| Payout-partner success, then settlement later reported failed | Full reversal: the partner's float is restored, no margin recognized. The intent ends in `failed` and we emit a `payment_intent.failed` webhook. |
+| User-initiated refund within the corridor's refund window (T+7 for TH, T+1 for VN) | The downstream payout partner refunds the merchant; Zennopay reverses the margin and credits the partner's float. |
+| Refund requested after the corridor's refund window | The payout partner rejects the refund. Resolution is handled commercially between the partner and end user. |
 
-The full T-account walkthrough lives in Zennopay's internal ledger spec and
-is dry-run against the live ledger at each daily close.
+## Pre-funding
 
-## Pre-funding cadence
-
-| Movement | Trigger | Frequency |
-|---|---|---|
-| Partner → Partner FBO (top-up) | Float < 1.2× daily burn | On demand; partner-initiated |
-| Zennopay commercial → payout-partner pre-fund (per corridor) | Corridor pre-fund < 1.2× daily burn | Daily, automatic |
-| Partner FBO → Zennopay commercial (margin sweep) | End of day | Daily, automatic |
-
-Pre-funding shortfalls are caught by monitoring that fires before they
-actually go below the daily burn threshold. We do not run out of float
-mid-day for a partner in good standing.
+Partners maintain a pre-funded USD float with Zennopay. Zennopay monitors
+float levels and notifies the partner before a top-up is required, so a
+partner in good standing does not run out of float mid-day.
 
 ## What you receive as a partner
 
-- A **monthly statement** showing transaction count, gross TPV, gross margin,
-  and any commitment-fee passthroughs.
-- A **reconciliation report** per corridor, comparing Zennopay's ledger
+- A **monthly statement** showing transaction count, gross TPV, processing
+  margin, and any commitment-fee passthroughs.
+- A **reconciliation report** per corridor, comparing Zennopay's records
   against the downstream settlement record.
 - A **monthly invoice** for any commitment fees due.
 
 See [Settlement & reconciliation](/concepts/settlement) for cadence and
-break-resolution flow.
+reporting.

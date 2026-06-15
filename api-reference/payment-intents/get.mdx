@@ -4,11 +4,6 @@ api: "GET /v1/payment_intents/{intent_id}"
 description: "Fetch the current state of a payment intent."
 ---
 
-<Note>
-  The full response shape (settlement details, provider references, etc.) is
-  still being finalized. 🚧
-</Note>
-
 ## Path parameters
 
 <ParamField path="intent_id" type="string" required>
@@ -49,7 +44,7 @@ production. See [Environments](/api-reference/environments).
 <CodeGroup>
 ```bash Sandbox
 curl https://api.sandbox.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678 \
-  -H "X-Zennopay-Key-Id: wizz_sandbox_2026q2" \
+  -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
   -H "X-Zennopay-Nonce: ..." \
   -H "X-Zennopay-Signature: ..."
@@ -57,7 +52,7 @@ curl https://api.sandbox.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678 \
 
 ```bash Production
 curl https://api.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678 \
-  -H "X-Zennopay-Key-Id: wizz_prod_2026q2" \
+  -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
   -H "X-Zennopay-Nonce: ..." \
   -H "X-Zennopay-Signature: ..."

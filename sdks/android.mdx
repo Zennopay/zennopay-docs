@@ -3,11 +3,11 @@ title: "Android SDK"
 description: "Embed Zennopay checkout in your Android app."
 ---
 
-The Zennopay Android SDK is a Stripe-Checkout-style integration: the SDK
-opens the Zennopay checkout web inside a Chrome Custom Tab (a system browser
-tab), then receives the result via a partner-defined deep-link. There is no
-embedded WebView — the user always sees the real
-`https://checkout.zennopay.com` URL in a system-rendered address bar.
+The Zennopay Android SDK uses the hosted-checkout model: the SDK opens the
+Zennopay checkout web inside a Chrome Custom Tab (a system browser tab), then
+receives the result via a partner-defined deep-link. There is no embedded
+WebView — the user always sees the real `https://checkout.zennopay.com` URL
+in a system-rendered address bar.
 
 ## Requirements
 
@@ -66,7 +66,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-  implementation("com.github.amanpal108:zennopay-android-sdk:0.1.0")
+  implementation("com.github.Zennopay:zennopay-android-sdk:0.1.0")
 }
 ```
 

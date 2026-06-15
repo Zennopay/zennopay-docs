@@ -3,9 +3,9 @@
 Mintlify source for [docs.zennopay.com](https://docs.zennopay.com) — the public
 documentation for the Zennopay cross-border QR payments API.
 
-Zennopay is a B2B fintech API that lets partner fintechs (Wizz Financial is
-partner #1) embed cross-border QR payments for their users — pay at a Thai
-PromptPay or Vietnamese VietQR merchant from a USD wallet balance.
+Zennopay is a B2B fintech API that lets partner fintechs embed cross-border
+QR payments for their users — pay at a Thai PromptPay or Vietnamese VietQR
+merchant from a USD wallet balance.
 
 ## What lives here
 
@@ -31,8 +31,8 @@ hot-reloads on file save.
 
 ## Deploy
 
-Pushes to `main` deploy automatically via the Mintlify GitHub integration. If
-the integration is not yet connected, ask Aman.
+Pushes to `main` deploy automatically via the Mintlify GitHub integration.
+Contact the docs maintainers if the integration needs reconnecting.
 
 ## Conventions
 

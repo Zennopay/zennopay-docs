@@ -24,7 +24,7 @@ payment intent and hand it off to the Zennopay SDK on mobile.
 
 You will receive:
 
-- A **key ID** (e.g. `wizz_sandbox_2026q2`) and a 32-byte **signing secret**
+- A **key ID** (e.g. `acme_sandbox_2026q2`) and a 32-byte **signing secret**
   for HMAC-signed API calls.
 - A **JWKS endpoint URL** you publish on your own domain
   (`https://your-domain/.well-known/jwks.json`), containing the RS256 public
@@ -40,7 +40,7 @@ secret, and send it with the four required headers.
 <CodeGroup>
 ```bash cURL (Sandbox)
 curl -X POST https://api.sandbox.zennopay.com/v1/payment_intents \
-  -H "X-Zennopay-Key-Id: wizz_sandbox_2026q2" \
+  -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
   -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
   -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
@@ -50,7 +50,7 @@ curl -X POST https://api.sandbox.zennopay.com/v1/payment_intents \
 
 ```bash cURL (Production)
 curl -X POST https://api.zennopay.com/v1/payment_intents \
-  -H "X-Zennopay-Key-Id: wizz_prod_2026q2" \
+  -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
   -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
   -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
@@ -79,7 +79,7 @@ const signature = crypto.createHmac("sha256", secret).update(canonical).digest("
 const res = await fetch(ZENNOPAY_HOST + path, {
   method,
   headers: {
-    "X-Zennopay-Key-Id": "wizz_sandbox_2026q2",
+    "X-Zennopay-Key-Id": "acme_sandbox_2026q2",
     "X-Zennopay-Timestamp": timestamp,
     "X-Zennopay-Nonce": nonce,
     "X-Zennopay-Signature": signature,

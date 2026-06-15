@@ -50,7 +50,7 @@
             "application/json": {
               "schema": { "$ref": "#/components/schemas/CreateIntentRequest" },
               "example": {
-                "wizz_user_id": "user_abc123",
+                "partner_user_id": "user_abc123",
                 "amount_usd_cents": 345,
                 "corridor": "th_promptpay"
               }
@@ -191,7 +191,7 @@
         "name": "X-Zennopay-Key-Id",
         "in": "header",
         "required": true,
-        "schema": { "type": "string", "example": "wizz_sandbox_2026q2" },
+        "schema": { "type": "string", "example": "acme_sandbox_2026q2" },
         "description": "Identifies the signing key. Format `{partner}_{env}_{quarter}`."
       },
       "HmacTimestamp": {
@@ -243,10 +243,10 @@
       },
       "CreateIntentRequest": {
         "type": "object",
-        "required": ["wizz_user_id", "amount_usd_cents", "corridor"],
+        "required": ["partner_user_id", "amount_usd_cents", "corridor"],
         "additionalProperties": false,
         "properties": {
-          "wizz_user_id": {
+          "partner_user_id": {
             "type": "string",
             "minLength": 1,
             "maxLength": 256,

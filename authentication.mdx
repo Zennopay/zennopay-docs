@@ -3,9 +3,9 @@ title: "Authentication"
 description: "Two layers — HMAC for server-to-server, JWT for per-user sessions."
 ---
 
-Zennopay uses two distinct auth layers in parallel. This mirrors the
-Stripe / Razorpay pattern: a long-lived shared secret on the server side, a
-short-lived per-session token on the client side.
+Zennopay uses two distinct auth layers in parallel — the dual-token pattern
+common to modern payment APIs: a long-lived shared secret on the server side,
+a short-lived per-session token on the client side.
 
 | Layer | Used between | Algorithm | Lifetime |
 |---|---|---|---|
@@ -24,7 +24,7 @@ allowlisted source IP.
 
 <ParamField header="X-Zennopay-Key-Id" type="string" required>
   Identifies which shared-secret key was used to sign. Example:
-  `wizz_prod_2026q1`. Format: `{partner}_{env}_{quarter}`.
+  `acme_prod_2026q1`. Format: `{partner}_{env}_{quarter}`.
 </ParamField>
 
 <ParamField header="X-Zennopay-Timestamp" type="string" required>

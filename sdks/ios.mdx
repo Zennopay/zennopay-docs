@@ -4,8 +4,8 @@ description: "Embed Zennopay checkout in your iOS app."
 ---
 
 The Zennopay iOS SDK is a thin, dependency-free wrapper that hands a payment
-intent off to the Zennopay-hosted checkout. Modeled on the Stripe Checkout
-pattern, it opens the checkout URL in a system browser tab via
+intent off to the Zennopay-hosted checkout. Using the hosted-checkout model,
+it opens the checkout URL in a system browser tab via
 `ASWebAuthenticationSession` — the user always sees a real URL bar and an
 Apple-mediated consent sheet. When checkout completes, the browser redirects
 back to your app via a registered URL scheme and the SDK surfaces a typed

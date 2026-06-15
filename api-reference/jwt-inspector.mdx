@@ -99,7 +99,7 @@ for — the server's 11-step verifier.
 | `alg_is_RS256` | A token minted with the wrong algorithm. | Whether the RS256 signature actually verifies against your JWKS. |
 | `aud_is_zennopay_checkout` | Typos or wrong-environment tokens. | — |
 | `has_zennopay_intent_id` | Missing namespaced claim. | Whether the intent exists in Zennopay's DB. |
-| `corridor_is_supported` | A stale `th_gln` / `vn_9pay` value. | Whether the corridor matches the intent's persisted corridor. |
+| `corridor_is_supported` | A stale or unsupported corridor value (e.g. `th_legacy`). | Whether the corridor matches the intent's persisted corridor. |
 | `not_expired` / `iat_fresh` | Stale tokens. | Clock skew with Zennopay's server. |
 | `session_window_ok` | `exp - iat > 600` minted by a bug in your token generator. | — |
 | — | — | `jti` replay (server-only — Redis dedup). |
