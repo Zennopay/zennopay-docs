@@ -8,7 +8,7 @@
 - [Quickstart](https://docs.zennopay.com/quickstart.md): Stand up a sandbox integration — sign your first HMAC call, mint a session JWT, present the PaymentSheet.
 - [How Zennopay works](https://docs.zennopay.com/how-zennopay-works.md): One diagram of the whole system — apps, money, and rails — with links to go deeper.
 
-## Accept payments
+## Make payments
 
 - [Zennopay PaymentSheet overview](https://docs.zennopay.com/payments/overview.md): The native in-process payment UI — flow screenshots, platform matrix, sequence diagram, and what you don't have to build.
 - [Build your session endpoint](https://docs.zennopay.com/payments/session-endpoint.md): The partner-backend contract — create an intent (HMAC) and mint the session JWT, with a complete Node.js reference implementation and security notes.

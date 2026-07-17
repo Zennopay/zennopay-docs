@@ -23,7 +23,7 @@
             ]
           },
           {
-            "group": "Accept payments",
+            "group": "Make payments",
             "pages": [
               "payments/overview",
               "payments/session-endpoint",
