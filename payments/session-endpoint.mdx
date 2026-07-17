@@ -235,11 +235,36 @@ preserves the scan/quote/confirm state across the refresh.
   logged in, KYC-verified, and sanctions-screened *right now* — the
   attestations you sign are per-payment statements, not cached facts.
 
+## Receipt tokens
+
+To let a user **reopen** the authoritative receipt for a *past* payment — its
+live status and the Zennopay brand — you mint a second, distinct credential: a
+**receipt token**. Same RS256 signing key, different contract.
+
+| | Session JWT | Receipt token |
+|---|---|---|
+| `aud` | `zennopay-checkout` | `zennopay-receipt` |
+| Scope | One intent (`zennopay:intent_id`) | The user (`sub`) — **not** intent-bound |
+| Lifetime | ≤ 5 min | ≤ 15 min |
+| Use | Single-use (`jti`, consumed by confirm) | **Reusable** — polls a pending receipt |
+| Power | Authorizes one debit | **Read-only** — only `GET /receipt` |
+| Attestations | Required (KYC + sanctions) | Not required (no money moves) |
+
+Mint one on demand when the user taps a history row. The reference
+[`zennopay-partner-starter`](https://github.com/Zennopay/zennopay-partner-starter)
+(v0.1.1+) ships the route as `POST /receipt-token { user_id } → { receipt_token,
+expires_at }`. The full flow — mint, `presentReceipt`, pending-poll, refunded
+state, and the cross-user `404` — is in
+[Reopen a receipt](/payments/reopen-receipt).
+
 ## Next steps
 
 <CardGroup cols={2}>
   <Card title="Present the PaymentSheet" icon="mobile" href="/payments/overview">
     Hand the session to the SDK on iOS, Android, Flutter, or React Native.
+  </Card>
+  <Card title="Reopen a receipt" icon="receipt" href="/payments/reopen-receipt">
+    Mint a receipt token and reopen the authoritative receipt for a past payment.
   </Card>
   <Card title="Test your integration" icon="vial" href="/payments/testing">
     Drive the whole flow in the sandbox before going live.

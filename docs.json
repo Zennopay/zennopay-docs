@@ -31,7 +31,8 @@
               "payments/android",
               "payments/flutter",
               "payments/react-native",
-              "payments/testing"
+              "payments/testing",
+              "payments/reopen-receipt"
             ]
           },
           {
@@ -66,7 +67,8 @@
                 "group": "Payment Intents",
                 "pages": [
                   "api-reference/payment-intents/create",
-                  "api-reference/payment-intents/get"
+                  "api-reference/payment-intents/get",
+                  "api-reference/payment-intents/receipt"
                 ]
               },
               "api-reference/webhooks",

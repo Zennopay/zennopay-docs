@@ -3,6 +3,19 @@ title: "Changelog"
 description: "Notable changes to the Zennopay public API and SDKs."
 ---
 
+## 2026-07-18 — Reopen a receipt
+
+- **New:** [Reopen a receipt](/payments/reopen-receipt) — you keep your own
+  transaction-history list; mint a read-only, reusable, user-scoped **receipt
+  token** (`aud: zennopay-receipt`) and call `presentReceipt` (iOS/Android 0.3.0,
+  Flutter, React Native) to reopen the authoritative Zennopay receipt with its
+  *live* status, pending-poll, and refunded messaging.
+- **New API:** [`GET /v1/payment_intents/:id/receipt`](/api-reference/payment-intents/receipt) —
+  receipt-token bearer auth; cross-user `404` with no existence leak.
+- [Build your session endpoint](/payments/session-endpoint) now documents
+  receipt tokens alongside session JWTs, and the reference partner starter ships
+  `POST /receipt-token`.
+
 ## 2026-07-17 — v0.2.0 — Native PaymentSheet
 
 - **Docs:** restructured into task-first navigation — the SDK guides now live

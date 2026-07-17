@@ -115,6 +115,41 @@
         }
       }
     },
+    "/v1/payment_intents/{intent_id}/receipt": {
+      "get": {
+        "summary": "Get receipt",
+        "description": "Fetch the authoritative, branded receipt for a payment intent with its live status. Called by the Zennopay SDK inside `presentReceipt`; partners usually don't call it directly. **Receipt-token only** — authorize with a partner-minted RS256 JWT whose `aud` is `zennopay-receipt` and whose `sub` is the opaque user ID. The token is read-only, reusable, and not intent-bound. A receipt token scoped to one user returns `404` for any intent that isn't that user's, with no existence leak.",
+        "operationId": "getReceipt",
+        "tags": ["Payment Intents"],
+        "security": [{ "receiptJwt": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/IntentIdPath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Receipt fetched",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Receipt" },
+                "example": {
+                  "intent_id": "zp_AbCd1234EfGh5678",
+                  "status": "captured",
+                  "amount_usd_cents": 14000,
+                  "corridor": "vn_vietqr",
+                  "local_amount": "3500000",
+                  "merchant_name": "Cong Ca Phe",
+                  "destination_masked": "••• 4321",
+                  "created_at": "2026-05-21T14:30:00Z",
+                  "captured_at": "2026-05-21T14:31:12Z"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationFailed" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
     "/v1/payment_intents/{intent_id}/confirm": {
       "post": {
         "summary": "Confirm payment intent",
@@ -184,6 +219,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "Partner-minted RS256 JWT. Lifetime ≤ 10 minutes, one-time-use (`jti` deduplicated), audience `zennopay-checkout`. Must include namespaced claims: `zennopay:intent_id`, `zennopay:amount_usd_cents`, `zennopay:corridor`, `zennopay:kyc_attestation`, `zennopay:sanctions_attestation`. The token's `iss` selects the partner JWKS used to verify."
+      },
+      "receiptJwt": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Partner-minted RS256 JWT for reopening a receipt. Lifetime ≤ 15 minutes, audience `zennopay-receipt`, `sub` = the opaque user ID. Read-only (authorizes only `GET /receipt`), reusable (no single-use `jti`), and not intent-bound — it is scoped to the user, so it can open any of that user's receipts but no one else's. The token's `iss` selects the partner JWKS used to verify."
       }
     },
     "parameters": {
@@ -275,6 +316,34 @@
           "corridor": { "$ref": "#/components/schemas/Corridor" },
           "created_at": { "type": "string", "format": "date-time" },
           "captured_at": { "type": "string", "format": "date-time", "description": "Present only when `status` is `captured`." }
+        }
+      },
+      "Receipt": {
+        "type": "object",
+        "required": ["intent_id", "status", "amount_usd_cents", "corridor", "created_at"],
+        "description": "Authoritative receipt for a payment, with live status. Returned by GET /v1/payment_intents/{intent_id}/receipt.",
+        "properties": {
+          "intent_id": { "type": "string", "example": "zp_AbCd1234EfGh5678" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "captured", "failed", "refunded"],
+            "description": "Live status at fetch time. Poll a `pending` receipt to a terminal state."
+          },
+          "amount_usd_cents": { "type": "integer", "description": "USD amount debited from the user's wallet." },
+          "corridor": { "$ref": "#/components/schemas/Corridor" },
+          "local_amount": { "type": "string", "description": "Amount delivered to the merchant in local currency (minor-unit string), e.g. \"3500000\" VND." },
+          "merchant_name": { "type": "string", "description": "Merchant display name from the scanned QR." },
+          "destination_masked": { "type": "string", "description": "Masked destination account, e.g. \"••• 4321\"." },
+          "created_at": { "type": "string", "format": "date-time" },
+          "captured_at": { "type": "string", "format": "date-time", "description": "Present only when `status` is `captured`." },
+          "refund": {
+            "type": "object",
+            "description": "Present only when `status` is `refunded`.",
+            "properties": {
+              "amount_usd_cents": { "type": "integer" },
+              "refunded_at": { "type": "string", "format": "date-time" }
+            }
+          }
         }
       },
       "Error": {

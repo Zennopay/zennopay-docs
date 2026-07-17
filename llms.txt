@@ -17,6 +17,7 @@
 - [Flutter](https://docs.zennopay.com/payments/flutter.md): `zennopay_flutter` install, `Zennopay.presentSheet` returning a `Future<PaymentResult>` (with first-class `Pending`), appearance, analytics hook.
 - [React Native](https://docs.zennopay.com/payments/react-native.md): `@zennopay/react-native` native bridge — install, native SDK linking, `useZennopay()` hook, `native_sdk_unavailable` troubleshooting.
 - [Test your integration](https://docs.zennopay.com/payments/testing.md): The sandbox loops to run before release — paste-QR without a camera, end-to-end to `captured`, fail-fast token checks, limit-blocked payments, pending reconciliation.
+- [Reopen a receipt](https://docs.zennopay.com/payments/reopen-receipt.md): You keep your own transaction-history list; mint a read-only, reusable, user-scoped receipt token (`aud: zennopay-receipt`) and call `presentReceipt` to reopen the authoritative Zennopay receipt with its live status — pending-poll, refunded state, and a cross-user 404 with no existence leak.
 
 ## Fundamentals
 
@@ -33,6 +34,7 @@
 - [Playground](https://docs.zennopay.com/api-reference/playground.md): Interactive request builder against the sandbox.
 - [Create a payment intent](https://docs.zennopay.com/api-reference/payment-intents/create.md): `POST /v1/payment_intents` — request, response, and errors.
 - [Get a payment intent](https://docs.zennopay.com/api-reference/payment-intents/get.md): `GET /v1/payment_intents/{id}` — status lifecycle.
+- [Get receipt](https://docs.zennopay.com/api-reference/payment-intents/receipt.md): `GET /v1/payment_intents/{id}/receipt` — authoritative receipt with live status, authorized by a receipt-token bearer; cross-user 404 with no existence leak.
 - [Webhooks](https://docs.zennopay.com/api-reference/webhooks.md): Event types, payload shape, and signature verification.
 - [JWT inspector](https://docs.zennopay.com/api-reference/jwt-inspector.md): Paste a session JWT and validate its claims against the contract.
 

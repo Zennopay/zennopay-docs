@@ -141,6 +141,10 @@ The SDK owns the entire payment surface, so you never build:
   the sheet renders the right copy.
 - **New corridors** — when a corridor lights up (Thailand PromptPay is next),
   existing integrations get it with zero client work.
+- **The receipt surface** — you keep your own transaction-history list, but you
+  never build the authoritative receipt view. When a user taps a past payment,
+  [`presentReceipt`](/payments/reopen-receipt) reopens the branded Zennopay
+  receipt with its *live* status (pending, captured, failed, or refunded).
 
 ## Sample app
 
@@ -170,6 +174,9 @@ integration engineer for the sample project.
   <Card title="React Native" icon="react" href="/payments/react-native" />
   <Card title="Build your session endpoint" icon="server" href="/payments/session-endpoint">
     The one backend route every payment starts with.
+  </Card>
+  <Card title="Reopen a receipt" icon="receipt" href="/payments/reopen-receipt">
+    You keep your history list; the SDK reopens the authoritative receipt.
   </Card>
   <Card title="Test your integration" icon="vial" href="/payments/testing">
     The sandbox loops to run before release.

@@ -1,0 +1,105 @@
+---
+title: "Get receipt"
+api: "GET /v1/payment_intents/{intent_id}/receipt"
+description: "Fetch the authoritative receipt for a payment intent, with its live status."
+---
+
+The authoritative, branded receipt for a single payment, refreshed to its
+**live** status. The Zennopay SDK calls this endpoint for you inside
+[`presentReceipt`](/payments/reopen-receipt) — partners usually don't call it
+directly.
+
+## Authorization
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer <receiptToken>` — a partner-minted RS256 JWT with `aud:
+  "zennopay-receipt"` and `sub` set to the opaque user ID whose receipt this is.
+  Read-only, reusable, and **not** intent-bound. See
+  [Reopen a receipt → the receipt token](/payments/reopen-receipt#the-receipt-token).
+</ParamField>
+
+## Path parameters
+
+<ParamField path="intent_id" type="string" required>
+  Zennopay intent ID, e.g. `zp_AbCd1234EfGh5678`.
+</ParamField>
+
+## Response
+
+<ResponseField name="intent_id" type="string">
+  The intent ID.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Live status at fetch time: `pending`, `captured`, `failed`, or `refunded`.
+  Poll a `pending` receipt to a terminal state.
+</ResponseField>
+
+<ResponseField name="amount_usd_cents" type="integer">
+  USD amount debited from the user's wallet.
+</ResponseField>
+
+<ResponseField name="corridor" type="string">
+  `th_promptpay` or `vn_vietqr`.
+</ResponseField>
+
+<ResponseField name="local_amount" type="string">
+  The amount delivered to the merchant, in local currency (e.g. `"3500000"` VND).
+</ResponseField>
+
+<ResponseField name="merchant_name" type="string">
+  Merchant display name from the scanned QR.
+</ResponseField>
+
+<ResponseField name="destination_masked" type="string">
+  Masked destination account, e.g. `••• 4321`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  RFC 3339 UTC timestamp.
+</ResponseField>
+
+<ResponseField name="captured_at" type="string">
+  Present only when `status` is `captured`.
+</ResponseField>
+
+<ResponseField name="refund" type="object">
+  Present only when `status` is `refunded`: `{ amount_usd_cents, refunded_at }`.
+</ResponseField>
+
+<Warning>
+  **No existence leak.** A receipt token scoped to one user returns `404` for
+  any intent that isn't that user's — including another partner's intents. The
+  `404` does not distinguish "doesn't exist" from "not yours".
+</Warning>
+
+## Example
+
+Example uses the sandbox host. Swap to `https://api.zennopay.com` in
+production. See [Environments](/api-reference/environments).
+
+<CodeGroup>
+```bash Sandbox
+curl https://api.sandbox.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678/receipt \
+  -H "Authorization: Bearer <receiptToken>"
+```
+
+```bash Production
+curl https://api.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678/receipt \
+  -H "Authorization: Bearer <receiptToken>"
+```
+</CodeGroup>
+
+```json Response
+{
+  "intent_id": "zp_AbCd1234EfGh5678",
+  "status": "captured",
+  "amount_usd_cents": 14000,
+  "corridor": "vn_vietqr",
+  "local_amount": "3500000",
+  "merchant_name": "Cong Ca Phe",
+  "destination_masked": "••• 4321",
+  "created_at": "2026-05-21T14:30:00Z",
+  "captured_at": "2026-05-21T14:31:12Z"
+}
+```
