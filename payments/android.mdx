@@ -36,22 +36,14 @@ CameraX + ML Kit, on-device.
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.zennopay:sdk:0.2.0")
+    implementation("in.zennopay:sdk:0.2.1")
 }
 ```
 
-The artifact is served from the Zennopay Maven repository — your onboarding
-pack includes the repository declaration for `settings.gradle.kts`:
-
-```kotlin
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven(url = "https://maven.zennopay.com/releases")
-    }
-}
-```
+The artifact is published to **Maven Central**, so no extra repository
+declaration is needed — `mavenCentral()` in your `settings.gradle.kts` (the
+Android default) resolves it. The Gradle coordinate is `in.zennopay:sdk`; the
+Kotlin import namespace stays `com.zennopay.sdk`.
 
 ### Camera permission
 

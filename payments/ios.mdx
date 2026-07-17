@@ -43,11 +43,17 @@ your app target. Or, in your own `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Zennopay/zennopay-ios-sdk", from: "0.2.0")
+    .package(url: "https://github.com/Zennopay/zennopay-ios-sdk", from: "0.2.1")
 ],
 targets: [
     .target(name: "YourApp", dependencies: ["Zennopay"])
 ]
+```
+
+Or with **CocoaPods** — add to your `Podfile` and run `pod install`:
+
+```ruby
+pod 'Zennopay', '~> 0.2.1'
 ```
 
 ### Declare camera usage

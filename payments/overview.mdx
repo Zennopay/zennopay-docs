@@ -55,9 +55,9 @@ merchant on staging.
 
 | Platform | Package | Install | Minimums |
 |---|---|---|---|
-| [iOS](/payments/ios) | `Zennopay` (Swift Package) | `https://github.com/Zennopay/zennopay-ios-sdk` | iOS 16, Swift 5.9 |
-| [Android](/payments/android) | `com.zennopay:sdk` (Maven) | `implementation("com.zennopay:sdk:0.2.0")` | minSdk 24, Compose |
-| [Flutter](/payments/flutter) | `zennopay_flutter` (pub.dev) | `zennopay_flutter: ^0.1.0` | Flutter 3.19, Dart 3.4 |
+| [iOS](/payments/ios) | `Zennopay` (SwiftPM / CocoaPods) | SPM `zennopay-ios-sdk` · `pod 'Zennopay'` | iOS 16, Swift 5.9 |
+| [Android](/payments/android) | `in.zennopay:sdk` (Maven Central) | `implementation("in.zennopay:sdk:0.2.1")` | minSdk 24, Compose |
+| [Flutter](/payments/flutter) | `zennopay_flutter` (pub.dev) | `zennopay_flutter: ^0.3.0` | Flutter 3.19, Dart 3.4 |
 | [React Native](/payments/react-native) | `@zennopay/react-native` (npm) | `npm install @zennopay/react-native` | RN 0.70 (bridges the native SDKs) |
 
 Every platform has the same shape: one `present` call in, one `PaymentResult`

@@ -54,7 +54,7 @@ Then add the camera usage string to `ios/YourApp/Info.plist`:
 ```
 
 **Android** — the module's Gradle file depends on the native SDK
-(`com.zennopay:sdk`). Make sure the Zennopay Maven repository from your
+(`in.zennopay:sdk`, on Maven Central). Make sure `mavenCentral()` is in your
 onboarding pack is declared in `android/settings.gradle` alongside `google()`
 and `mavenCentral()`. The `CAMERA` permission is merged from the native SDK's
 manifest; the SDK requests it at runtime.
