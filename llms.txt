@@ -1,0 +1,38 @@
+# Zennopay Documentation
+
+> Zennopay is a B2B API for cross-border QR payments in Southeast Asia. Partner fintechs embed the Zennopay PaymentSheet — a native, in-process pay experience (QR scan → amount + FX quote → slide-to-pay → result) — so their users can pay Thai PromptPay and Vietnamese VietQR merchants from a USD wallet balance. Partners pre-fund a USD FBO account; each payment draws it down and the local-currency payout rides local rails. Auth is two-layer: HMAC-signed server-to-server calls plus short-lived, intent-bound RS256 session JWTs. Every page below is also available as plain Markdown by appending `.md` to its URL.
+
+## Get started
+
+- [Introduction](https://docs.zennopay.com/introduction.md): What Zennopay does, who it's for, and how a payment flows end to end.
+- [Quickstart](https://docs.zennopay.com/quickstart.md): Stand up a sandbox integration — sign your first HMAC call, mint a session JWT, present the PaymentSheet.
+- [Authentication](https://docs.zennopay.com/authentication.md): The dual-layer auth model — server-to-server HMAC signing and the RS256 client session JWT, with claims, JWKS requirements, and test vectors.
+
+## SDKs (PaymentSheet)
+
+- [Zennopay PaymentSheet overview](https://docs.zennopay.com/sdks/overview.md): The native in-process payment UI — flow screenshots, platform matrix, sequence diagram, and what you don't have to build.
+- [iOS](https://docs.zennopay.com/sdks/ios.md): SwiftPM install, camera usage string, `Zennopay.presentCheckout` quickstart, appearance theming, Simulator testing, hosted-checkout migration.
+- [Android](https://docs.zennopay.com/sdks/android.md): Maven install, Compose launcher and one-shot `presentCheckout` patterns, appearance theming, testing, hosted-checkout migration.
+- [Flutter](https://docs.zennopay.com/sdks/flutter.md): `zennopay_flutter` install, `Zennopay.presentSheet` returning a `Future<PaymentResult>` (with first-class `Pending`), appearance, analytics hook.
+- [React Native](https://docs.zennopay.com/sdks/react-native.md): `@zennopay/react-native` native bridge — install, native SDK linking, `useZennopay()` hook, `native_sdk_unavailable` troubleshooting.
+- [Build your session endpoint](https://docs.zennopay.com/sdks/session-endpoint.md): The partner-backend contract — create an intent (HMAC) and mint the session JWT, with a complete Node.js reference implementation and security notes.
+
+## Concepts
+
+- [Funds flow](https://docs.zennopay.com/concepts/funds-flow.md): USD pre-fund → FBO custody → per-payment drawdown → local-rail payout, with failure/refund handling and per-user limits.
+- [Corridors](https://docs.zennopay.com/concepts/corridors.md): Supported corridors — Thailand PromptPay and Vietnam VietQR — and their properties.
+- [Settlement](https://docs.zennopay.com/concepts/settlement.md): Settlement cadence, reconciliation reports, and statements.
+
+## API Reference
+
+- [API overview](https://docs.zennopay.com/api-reference/overview.md): REST conventions, error envelope, idempotency.
+- [Environments](https://docs.zennopay.com/api-reference/environments.md): Production and sandbox base URLs and how keys map to them.
+- [Playground](https://docs.zennopay.com/api-reference/playground.md): Interactive request builder against the sandbox.
+- [Create a payment intent](https://docs.zennopay.com/api-reference/payment-intents/create.md): `POST /v1/payment_intents` — request, response, and errors.
+- [Get a payment intent](https://docs.zennopay.com/api-reference/payment-intents/get.md): `GET /v1/payment_intents/{id}` — status lifecycle.
+- [Webhooks](https://docs.zennopay.com/api-reference/webhooks.md): Event types, payload shape, and signature verification.
+- [JWT inspector](https://docs.zennopay.com/api-reference/jwt-inspector.md): Paste a session JWT and validate its claims against the contract.
+
+## Reference
+
+- [Changelog](https://docs.zennopay.com/changelog.md): Notable changes to the Zennopay public API and SDKs.

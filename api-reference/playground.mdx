@@ -1,0 +1,74 @@
+---
+title: "API playground"
+description: "Try Zennopay endpoints live. Requests are sent against the sandbox server with your credentials."
+---
+
+Use the interactive playground below to exercise the Zennopay Partner API
+against the sandbox environment. Every endpoint defined in
+[`openapi.json`](https://github.com/Zennopay/zennopay-docs/blob/main/openapi.json)
+is callable here — request bodies are validated client-side against the
+schema before they're sent.
+
+<Note>
+  The playground talks to `https://api.sandbox.zennopay.com`. Use a
+  **sandbox** HMAC key (`{partner}_sandbox_*`) — production keys are
+  rejected by the sandbox host.
+</Note>
+
+## What you'll need
+
+- A sandbox HMAC key (`X-Zennopay-Key-Id`) and shared secret. Compute the
+  signature with the canonical-request recipe from
+  [Authentication](/authentication).
+- For JWT-protected endpoints (`GET /v1/payment_intents/{intent_id}` and
+  `POST /v1/payment_intents/{intent_id}/confirm`), a freshly minted partner
+  JWT bound to the intent you're calling. See
+  [Debugging auth](/api-reference/jwt-inspector) for a tool that decodes
+  your JWT so you can sanity-check the claims before trying it here.
+
+## Endpoints
+
+The playground is generated from [`/openapi.json`](/openapi.json) and groups
+endpoints by tag:
+
+- **Payment Intents** — `POST /v1/payment_intents`,
+  `GET /v1/payment_intents/{intent_id}`,
+  `POST /v1/payment_intents/{intent_id}/confirm`,
+  `POST /v1/payment_intents/{intent_id}/cancel`
+
+<Card title="Open the OpenAPI spec" icon="code" href="/openapi.json">
+  Raw OpenAPI 3.1 document. Drop this into Postman, Insomnia, or your own
+  codegen if you'd rather build a client locally.
+</Card>
+
+## Tips for first-time use
+
+<AccordionGroup>
+  <Accordion title="My HMAC request returns 401">
+    The most common causes, in order:
+
+    1. **Clock skew.** `X-Zennopay-Timestamp` must be within ±5 minutes
+       of server time. NTP-sync your machine.
+    2. **Body hash mismatch.** The canonical request hashes the *exact
+       bytes* of the request body. Don't pretty-print or re-serialize
+       between signing and sending.
+    3. **Source IP not allowlisted.** The sandbox allowlist is configured
+       per partner in the dashboard.
+  </Accordion>
+  <Accordion title="My JWT returns 401">
+    Decode the JWT with the [JWT inspector](/api-reference/jwt-inspector)
+    first and confirm:
+
+    - `aud` is `zennopay-checkout`
+    - `exp - iat` is ≤ 600 seconds
+    - `zennopay:intent_id` matches the path parameter you're calling
+    - `zennopay:amount_usd_cents` and `zennopay:corridor` match the
+      intent's persisted values
+    - `iss` is registered in the dashboard and its JWKS is reachable
+  </Accordion>
+  <Accordion title="My nonce keeps getting rejected">
+    Each `X-Zennopay-Nonce` is single-use within a 10-minute window.
+    Generate a fresh random 32-byte hex string for every request — never
+    hardcode or reuse one.
+  </Accordion>
+</AccordionGroup>

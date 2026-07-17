@@ -1,0 +1,154 @@
+---
+title: "Zennopay PaymentSheet"
+description: "A native, in-process pay experience — scan → amount → slide-to-pay → result — your users never leave your app."
+---
+
+The **PaymentSheet** is Zennopay's prebuilt, native payment UI, modeled on
+Stripe's PaymentSheet. Your backend creates a payment intent and mints a
+short-lived session token; your app hands both to the SDK in a single call; the
+SDK renders the entire pay experience — QR scan, amount + FX quote,
+slide-to-pay, and result — **natively, in-process**, and returns one typed
+`PaymentResult`.
+
+There is no browser tab, no redirect, and no URL scheme. The camera scanner,
+slide-to-pay physics, quote refresh, retries, and status polling are all inside
+the sheet.
+
+<Frame caption="One payment, end to end, in the demo wallet app — all rendered by the SDK.">
+  <img src="/images/sdk-demo/flow.gif" width="320" alt="Animated flow: scan a VietQR code, review the amount and USD quote, slide to pay, see the success screen, and return to the wallet with the balance debited." />
+</Frame>
+
+## The flow, screen by screen
+
+These are real captures from the [demo wallet app](#demo-app) paying a VietQR
+merchant on staging.
+
+<Steps>
+  <Step title="Your app: the user taps Scan &amp; Pay">
+    <Frame caption="The partner app owns everything up to this point — wallet, balance, entry point.">
+      <img src="/images/sdk-demo/01-home.png" width="280" alt="Partner wallet home screen with a Scan and Pay button." />
+    </Frame>
+  </Step>
+  <Step title="PaymentSheet: scan the merchant QR">
+    <Frame caption="Native camera scanner with torch, gallery, and paste-QR fallbacks. The raw payload is validated server-side.">
+      <img src="/images/sdk-demo/02-sheet-scan.png" width="280" alt="The PaymentSheet scanner screen with camera viewport and paste fallback." />
+    </Frame>
+  </Step>
+  <Step title="PaymentSheet: amount + FX quote">
+    <Frame caption="₫3,500,000 to the merchant, $140.00 from the user's wallet. Quotes refresh silently on expiry.">
+      <img src="/images/sdk-demo/03-sheet-amount.png" width="280" alt="The amount screen showing 3,500,000 VND and the 140.00 USD wallet debit, with slide-to-pay." />
+    </Frame>
+  </Step>
+  <Step title="PaymentSheet: slide to pay → result">
+    <Frame caption="Slide-to-pay fires the confirm exactly once; the sheet polls to a terminal state and shows the receipt.">
+      <img src="/images/sdk-demo/04-sheet-success.png" width="280" alt="The success screen: Payment sent, with merchant and amount details." />
+    </Frame>
+  </Step>
+  <Step title="Your app: back in control">
+    <Frame caption="The sheet dismisses and your onResult callback fires — debit your ledger, render the activity row.">
+      <img src="/images/sdk-demo/05-home-after.png" width="280" alt="Partner wallet home after payment: balance debited and a new activity row." />
+    </Frame>
+  </Step>
+</Steps>
+
+## Pick your platform
+
+| Platform | Package | Install | Minimums |
+|---|---|---|---|
+| [iOS](/sdks/ios) | `Zennopay` (Swift Package) | `https://github.com/Zennopay/zennopay-ios-sdk` | iOS 16, Swift 5.9 |
+| [Android](/sdks/android) | `com.zennopay:sdk` (Maven) | `implementation("com.zennopay:sdk:0.2.0")` | minSdk 24, Compose |
+| [Flutter](/sdks/flutter) | `zennopay_flutter` (pub.dev) | `zennopay_flutter: ^0.1.0` | Flutter 3.19, Dart 3.4 |
+| [React Native](/sdks/react-native) | `@zennopay/react-native` (npm) | `npm install @zennopay/react-native` | RN 0.70 (bridges the native SDKs) |
+
+Every platform has the same shape: one `present` call in, one `PaymentResult`
+out — `completed` / `canceled` / `failed` (Flutter and React Native also
+surface a first-class `pending` for poll timeouts).
+
+## How it works
+
+Per payment, your backend does two things — creates the intent
+(server-to-server, HMAC-signed with your secret key) and mints a short-lived
+**session token** (an RS256 JWT bound to that intent). Your app passes both to
+the SDK; the SDK talks to the Zennopay API directly with the session token as
+`Authorization: Bearer`.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant App as Partner app<br/>(+ PaymentSheet SDK)
+    participant BE as Partner backend
+    participant ZP as Zennopay API
+    participant Rail as Local payout rail<br/>(Vietnam)
+
+    U->>App: Tap "Scan & Pay"
+    App->>BE: POST /wallet/checkout-session
+    BE->>ZP: POST /v1/payment_intents (HMAC-signed)
+    ZP-->>BE: intent_id
+    BE-->>App: intent_id + session JWT (RS256, ≤5 min, single-use)
+    App->>App: Zennopay.presentCheckout(intentId, sessionJWT)
+    U->>App: Scan merchant QR
+    App->>ZP: POST /v1/payment_intents/:id/scan (Bearer)
+    ZP-->>App: merchant + quote-bound amount (VND + USD)
+    U->>App: Slide to pay
+    App->>ZP: POST /v1/payment_intents/:id/confirm (Bearer, Idempotency-Key)
+    ZP->>Rail: Payout to merchant's bank
+    App->>ZP: GET /v1/payment_intents/:id (poll to terminal)
+    ZP-->>App: status: captured
+    App-->>U: "Payment sent" → sheet dismisses
+    App->>App: onResult(.completed(intentId))
+    ZP-->>BE: webhook: payment_intent.captured
+```
+
+The session token setup — creating the intent and minting the JWT — is the only
+backend work. It is documented end to end, with a complete Node.js reference
+implementation, in [Build your session endpoint](/sdks/session-endpoint).
+
+<Info>
+  **Trust model.** Your **publishable key** (`pk_...`) identifies your app and
+  is safe to ship in a binary. Your **secret key** (`sk_...`) signs
+  server-to-server calls and never leaves your backend. The session JWT the SDK
+  holds is scoped to a single intent, expires in ≤ 5 minutes, and its `sub` is
+  your opaque user ID — never a raw government ID. Both keys come from the
+  Zennopay Console → **Developers** tab.
+</Info>
+
+## What you don't build
+
+The SDK owns the entire payment surface, so you never build:
+
+- **A QR scanner** — camera capture, torch, gallery import, and a paste-QR
+  fallback (which also makes the flow testable on simulators).
+- **EMVCo parsing** — the raw payload is validated authoritatively server-side
+  (CRC, tags, merchant extraction). VietQR today, PromptPay next.
+- **FX quoting UI** — the sheet shows the bound local amount and the exact USD
+  wallet debit, and silently re-quotes when a quote expires.
+- **A confirm surface** — slide-to-pay fires the confirm exactly once, with an
+  idempotency key persisted before the network call.
+- **Status polling, retries, and recovery** — including re-minting an expired
+  session via your `refreshSession` hook and recovering the true terminal
+  state after a process death mid-confirm.
+- **Per-user regulatory limits** — Zennopay enforces corridor limits
+  automatically (Vietnam: ₫5,000,000 per transaction, ₫10,000,000 per day,
+  ₫25,000,000 per month per user) and the sheet renders the right copy.
+- **New corridors** — when a corridor lights up (Thailand PromptPay is next),
+  existing integrations get it with zero client work.
+
+## Demo app
+
+The screenshots above come from the Zennopay sample wallet app — a reference
+integration that exercises the [session endpoint contract](/sdks/session-endpoint)
+and the `presentCheckout` call against the sandbox. Ask your Zennopay
+integration engineer for the sample project.
+
+## Migrating from hosted checkout (beta)
+
+<Warning>
+  The beta hosted-checkout model — a browser tab via
+  `ASWebAuthenticationSession` / Chrome Custom Tabs with a URL-scheme redirect —
+  is **deprecated and removed**. `Zennopay.openCheckout(...)` and the
+  registered URL scheme are gone. Replace the call with
+  `presentCheckout` / `presentSheet`, delete your URL-scheme registration, and
+  add the camera usage declaration. See the migration notes at the top of the
+  [iOS](/sdks/ios) and [Android](/sdks/android) pages.
+</Warning>

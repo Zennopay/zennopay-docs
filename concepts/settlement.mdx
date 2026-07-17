@@ -1,0 +1,54 @@
+---
+title: "Settlement & reconciliation"
+description: "How money settles, and what you receive as a partner."
+---
+
+Zennopay settles daily against each corridor's payout partner and reconciles
+daily against partner funds. Anything that doesn't balance is held and
+investigated before close.
+
+## Daily cycle
+
+Throughout the day, transactions draw down the partner's pre-funded USD float
+as they settle. At end of business day (UTC), Zennopay runs its reconciliation
+pass, tops up downstream payout floats, and confirms that every in-flight
+balance has resolved. Anything still open is flagged for review rather than
+closed.
+
+## Stuck transactions
+
+If a transaction is stuck mid-flow — a payout-partner timeout with no
+confirmation either way — Zennopay holds it and re-queries the payout partner
+periodically. While unresolved, the partner sees the intent in `processing`
+state and the SDK surfaces "pending" to the end user. If still ambiguous after
+24 hours, it escalates to manual review.
+
+## Period close
+
+| Cadence | What happens |
+|---|---|
+| **Daily** | Reconciliation pass; downstream payout floats topped up |
+| **Monthly** | Partner statements + invoices generated; bank statements reconciled |
+| **Quarterly** | Commitment-tier recalculation |
+| **Annually** | Audit prep; full event log made available for replay |
+
+## Reports the partner receives
+
+- **Daily transaction summary** — per-corridor transaction count and gross TPV.
+- **Monthly statement** — a period summary including processing margin.
+- **Monthly invoice** — commitment fees due, if any.
+- **Reconciliation report (per corridor)** — downstream settlement record vs
+  Zennopay's records, with any flagged discrepancies.
+
+## Audit trail
+
+Every state transition on every payment intent is recorded as an immutable,
+timestamped event, queryable by `payment_intent_id` and retained for **7
+years** per US payment-facilitator industry norm. Auditors can replay any
+historical transaction from the event log; no data is ever overwritten in
+place.
+
+## Currency precision
+
+All USD values are stored and returned as integer cents (`amount_usd_cents`)
+to avoid floating-point drift — see [API conventions](/api-reference/overview).

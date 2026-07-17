@@ -1,0 +1,48 @@
+---
+title: "Corridors"
+description: "Which networks Zennopay supports and how each one works."
+---
+
+A *corridor* is a (origin, destination, rail) triple. v1 covers two
+destination corridors; origin is always a USD wallet held by the partner.
+
+## TH — PromptPay
+
+- **Corridor code:** `th_promptpay`
+- **Local rail:** PromptPay (Bank of Thailand's instant payment network)
+- **Settlement currency to merchant:** THB
+- **Refund window:** T+7 (payout-partner-side)
+
+PromptPay QR codes are issued by Thai banks to merchants of every size, from
+airport duty-free counters to street stalls. Zennopay routes the transaction
+through its licensed payout partner network for the corridor; the partner
+network handles USD → THB FX and the final push to the merchant's
+PromptPay-registered account.
+
+## VN — VietQR
+
+- **Corridor code:** `vn_vietqr`
+- **Local rail:** VietQR (interbank QR standard governed by NAPAS)
+- **Settlement currency to merchant:** VND
+- **Refund window:** T+1 (payout-partner-side)
+
+VietQR is the unified QR standard across Vietnamese banks. Zennopay's payout
+partner for this corridor handles USD → VND conversion and merchant
+settlement.
+
+## Choosing a corridor
+
+The corridor is locked when the payment intent is created and is embedded in
+the session JWT. Your app picks the corridor based on which country the user
+is paying in (typically inferred from the QR code itself; partner UX picks
+the corridor *before* the user scans).
+
+## Roadmap
+
+| Corridor | Status |
+|---|---|
+| TH PromptPay | Live (v1) |
+| VN VietQR | Live (v1) |
+
+Additional Southeast Asian corridors are on the roadmap. Contact
+**partners@zennopay.com** for current availability.

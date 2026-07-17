@@ -1,0 +1,207 @@
+---
+title: "React Native"
+description: "Present the Zennopay PaymentSheet from React Native via a thin native bridge."
+---
+
+`@zennopay/react-native` is a **native bridge**: a thin JS API over the native
+Zennopay [iOS](/sdks/ios) and [Android](/sdks/android) PaymentSheets. The
+camera scanner, slide-to-pay physics, and confirm/status UI all render
+natively — nothing is re-implemented in JS. One `await presentSheet(...)`, one
+`PaymentResult`.
+
+It supports both the legacy bridge and the new architecture
+(Fabric/TurboModules) — the module is interop-compatible.
+
+## Requirements
+
+- React Native 0.70+, React 17+
+- The **native Zennopay SDKs must be linked** (see below) — this package is
+  the JS surface, not the implementation
+
+## Install
+
+```sh
+npm install @zennopay/react-native
+```
+
+### Link the native SDKs
+
+<Warning>
+  If the native SDK isn't linked, every `presentSheet` call rejects with the
+  code `native_sdk_unavailable`. This is a build/link problem, not a payment
+  failure — fix the steps below and rebuild. (Expo Go cannot load the native
+  module; use a development build.)
+</Warning>
+
+**iOS** — the podspec declares a dependency on the native `Zennopay` pod, so
+installing pods pulls it in:
+
+```sh
+cd ios && pod install
+```
+
+Then add the camera usage string to `ios/YourApp/Info.plist`:
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Scan a merchant QR code to pay.</string>
+```
+
+**Android** — the module's Gradle file depends on the native SDK
+(`com.zennopay:sdk`). Make sure the Zennopay Maven repository from your
+onboarding pack is declared in `android/settings.gradle` alongside `google()`
+and `mavenCentral()`. The `CAMERA` permission is merged from the native SDK's
+manifest; the SDK requests it at runtime.
+
+Rebuild the app after installing (`npx react-native run-ios` /
+`run-android`) — a Metro-only reload will not pick up the native module.
+
+## Quickstart
+
+Wrap your app in `ZennopayProvider` (sets the default environment), then call
+`presentSheet` from the `useZennopay()` hook:
+
+```tsx
+import { ZennopayProvider, useZennopay } from '@zennopay/react-native';
+
+// Root:
+export default function App() {
+  return (
+    <ZennopayProvider config={{ environment: 'staging' }}>
+      <Wallet />
+    </ZennopayProvider>
+  );
+}
+
+// In a component:
+function PayButton() {
+  const { presentSheet } = useZennopay();
+
+  const onScanAndPay = async () => {
+    // 1. Ask YOUR backend for a checkout session (intent + session JWT).
+    const session = await walletApi.createCheckoutSession();
+
+    // 2. Present the native PaymentSheet and await the terminal result.
+    const result = await presentSheet({
+      intentId: session.intentId,
+      sessionJwt: session.sessionJwt,
+      refreshSession: async (intentId) => {
+        // Called on session expiry (401): re-mint for the SAME intent,
+        // or return null if you can't.
+        const refreshed = await walletApi.refreshSession(intentId);
+        return refreshed?.sessionJwt ?? null;
+      },
+    });
+
+    // 3. One terminal case.
+    switch (result.status) {
+      case 'completed':
+        showReceipt(result.receipt); // money moved — debit your ledger
+        break;
+      case 'pending':
+        showPending(); // may still settle — reconcile via webhook/history
+        break;
+      case 'canceled':
+        break; // user backed out; no money moved
+      case 'failed':
+        console.warn('payment failed', result.error.code);
+        break;
+    }
+  };
+
+  return <Button title="Scan & Pay" onPress={onScanAndPay} />;
+}
+```
+
+There is also an imperative import if you don't want the provider:
+
+```ts
+import { presentSheet } from '@zennopay/react-native';
+
+const result = await presentSheet({ intentId, sessionJwt, config: { environment: 'staging' } });
+```
+
+### The result
+
+```ts
+type PaymentResult =
+  | { status: 'completed'; intentId: string; receipt?: Receipt }
+  | { status: 'canceled';  intentId: string }
+  | { status: 'failed';    intentId: string; error: ZennopayError }
+  | { status: 'pending';   intentId: string; receipt?: Receipt };
+```
+
+<Note>
+  The promise **rejects** only for integration errors — no presentation
+  context (`no_presentation_context`) or the native SDK not linked
+  (`native_sdk_unavailable`). A payment *failure* resolves normally with
+  `{ status: 'failed', error }`, where `error.code` is a stable string from
+  the shared taxonomy (`invalid_jwt`, `intent_mismatch`, `jwt_expired`,
+  `quote_expired`, `limit_exceeded`, `network_error`, `timed_out`, …).
+</Note>
+
+`pending` means status polling timed out — the payment may still settle;
+reconcile via your [webhook](/api-reference/webhooks) or transaction history.
+
+## Configuration
+
+```ts
+// Provider-wide default:
+<ZennopayProvider config={{ environment: 'production' }}>...</ZennopayProvider>
+
+// Or per call (overrides the provider):
+await presentSheet({
+  intentId,
+  sessionJwt,
+  config: { environment: 'staging' },          // SANDBOX pill shown
+  // config: { apiBaseUrl: 'http://localhost:3000' },  // custom gateway
+});
+```
+
+## Appearance
+
+Theming is a plain JS object, serialized to the native `ZennopayAppearance`:
+
+```ts
+await presentSheet({
+  intentId: session.intentId,
+  sessionJwt: session.sessionJwt,
+  appearance: {
+    mode: 'automatic',
+    colors: {
+      primary: '#1B4FD8',
+      dark: { primary: '#6E8EF5' },   // per-mode overrides
+    },
+    cornerRadius: { card: 10, slide: 12 },   // clamped to <= 12 natively
+    font: { family: 'Inter', scale: 1.0 },
+    primaryButton: { background: '#1B4FD8', textColor: '#FFFFFF', cornerRadius: 10 },
+  },
+});
+```
+
+Omit `appearance` for the default Zennopay look with system light/dark.
+Structural rules (radius cap, tabular figures, accent-as-state) are enforced
+natively and can't be overridden.
+
+## How the bridge works
+
+- `presentSheet` calls the native module's `present(...)`, which wraps
+  `Zennopay.presentCheckout` on each platform and resolves exactly once with
+  the terminal result.
+- `refreshSession` is serviced over an event + reply: the native side emits
+  `ZennopaySessionExpired { intentId }`, the bridge runs your async callback,
+  and replies with the fresh JWT — the bridge never blocks.
+- The session JWT crosses the bridge once, into native memory; it is never
+  placed in a URL. Confirm idempotency, retries, and relaunch recovery are
+  owned by the native SDKs.
+
+## Testing
+
+- **Simulator/emulator:** no usable camera — the native sheet falls back to
+  paste-QR; paste any VietQR payload string.
+- **Staging end-to-end:** `{ environment: 'staging' }` + a session from your
+  sandbox backend drives the flow to a real `captured` on the sandbox payout
+  rail.
+- **Link check:** if `presentSheet` rejects with `native_sdk_unavailable`,
+  re-run `pod install` / a full Gradle build — the JS package is installed but
+  the native SDK isn't.

@@ -1,0 +1,47 @@
+---
+title: "Webhooks"
+description: "How Zennopay notifies you about payment state changes."
+---
+
+<Note>
+  Webhook signatures share the HMAC canonicalization scheme used for
+  server-to-server requests. See [Authentication](/authentication).
+</Note>
+
+## Event types
+
+| Event | When it fires |
+|---|---|
+| `payment_intent.captured` | Provider confirmed payout; merchant has been paid |
+| `payment_intent.failed` | Final failure; intent will not be retried |
+| `payment_intent.refunded` | Refund completed end-to-end |
+
+## Delivery
+
+- Webhooks are `POST`ed as JSON to your registered endpoint.
+- We retry with exponential backoff on non-2xx responses for up to 24 hours.
+- Order is **not** guaranteed. Treat your handler as idempotent — keyed on
+  `event_id`.
+
+## Signature verification
+
+Each webhook carries an `X-Zennopay-Signature` header. Verify it by
+re-computing HMAC-SHA256 over the canonical request (see
+[Authentication](/authentication)) using the webhook signing secret issued
+during onboarding (distinct from your API signing secret).
+
+```typescript
+import crypto from "node:crypto";
+
+function verifyWebhook(headers, rawBody, secret) {
+  const timestamp = headers["x-zennopay-timestamp"];
+  const nonce = headers["x-zennopay-nonce"];
+  const signature = headers["x-zennopay-signature"];
+  const bodyHash = crypto.createHash("sha256").update(rawBody).digest("hex");
+  const canonical = ["POST", "/webhook", timestamp, nonce, bodyHash].join("\n");
+  const expected = crypto.createHmac("sha256", secret).update(canonical).digest("base64");
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+```
+
+Always use a constant-time comparison.

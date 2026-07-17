@@ -1,0 +1,61 @@
+---
+title: "Environments"
+description: "Base URLs for the Zennopay Partner API across production and sandbox."
+---
+
+Zennopay exposes two partner-facing environments. Both speak the same API; they
+differ only in which keys, FBO accounts, and payout-provider rails they point
+at.
+
+## Base URLs
+
+| Environment | Base URL | Use it for |
+|---|---|---|
+| **Production** | `https://api.zennopay.com` | Live partner traffic. Real money. Production HMAC keys. |
+| **Sandbox** | `https://api.sandbox.zennopay.com` | Integration, QA, and demos. Sandbox HMAC keys only — production keys are rejected by the sandbox host. |
+
+<Note>
+  All endpoints are mounted under `/v1`. Example:
+  `https://api.zennopay.com/v1/payment_intents`.
+</Note>
+
+## Picking the right one
+
+- During integration, point every example in this documentation at the
+  **sandbox** base URL. Code snippets default to the production URL for
+  copy-paste readiness in your final integration — swap the host while you're
+  building.
+- Sandbox issues a separate `X-Zennopay-Key-Id` (e.g. `acme_sandbox_2026q2`)
+  and a separate signing secret from production. Never cross the streams.
+- The OpenAPI [playground](/api-reference/playground) is hard-wired to the
+  sandbox host.
+
+## Checkout and dashboard hosts
+
+These are shared across environments — the API host you call determines which
+backend the flow lands on.
+
+| Surface | URL |
+|---|---|
+| Hosted checkout (mobile SDK target) | `https://checkout.zennopay.com` |
+| Partner dashboard | `https://dashboard.zennopay.com` |
+
+## What about staging?
+
+Zennopay also runs an internal **staging** environment for pre-production
+verification of our own deploys. It is not exposed to partners and has no
+public hostname. Partners test against **sandbox**.
+
+## Promotion path
+
+```text
+your code  --->  api.sandbox.zennopay.com  --(graduation review)-->  api.zennopay.com
+```
+
+Graduation from sandbox to production is gated on:
+
+1. A signed partner agreement and operational runbook on file.
+2. A pre-funded USD float at the Zennopay FBO account.
+3. KYC / sanctions attestation flow verified end-to-end in sandbox.
+
+Email **partners@zennopay.com** to start the graduation review.

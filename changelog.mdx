@@ -1,0 +1,31 @@
+---
+title: "Changelog"
+description: "Notable changes to the Zennopay public API and SDKs."
+---
+
+## 2026-07-17 — v0.2.0 — Native PaymentSheet
+
+- **New:** [PaymentSheet overview](/sdks/overview) — the native, in-process
+  pay experience, with real captures from the sample wallet app.
+- **Rewritten:** [iOS](/sdks/ios) and [Android](/sdks/android) SDK guides for
+  the native PaymentSheet (`presentCheckout`). The beta hosted-checkout model
+  (browser tab + URL-scheme redirect) is deprecated and removed; each page
+  carries a migration callout.
+- **New:** [Flutter](/sdks/flutter) (`zennopay_flutter`) and
+  [React Native](/sdks/react-native) (`@zennopay/react-native`) SDK guides.
+- **New:** [Build your session endpoint](/sdks/session-endpoint) — the
+  partner-backend contract (create intent + mint session JWT) with a complete
+  Node.js reference implementation.
+- [Funds flow](/concepts/funds-flow) now includes a pre-fund → FBO →
+  drawdown → local-rail payout diagram.
+- LLM-friendly docs: `llms.txt` index published; every page has a contextual
+  "Copy page / View as Markdown / Open in ChatGPT / Open in Claude" menu.
+
+## 2026-05-21 — v0.1.0 — Initial public docs
+
+- Initial Mintlify scaffold published.
+- Get started: Introduction, Quickstart, Authentication (HMAC + JWT).
+- API Reference: Payment Intents (create + get), Webhooks.
+- SDKs: iOS (SPM) and Android (Gradle) install + quickstart.
+- Concepts: Funds flow, Corridors, Settlement.
+- TH (`th_promptpay`) and VN (`vn_vietqr`) corridors documented.

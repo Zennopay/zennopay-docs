@@ -1,0 +1,141 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "palm",
+  "name": "Zennopay",
+  "colors": {
+    "primary": "#6560FF",
+    "light": "#c2c1ff",
+    "dark": "#091422"
+  },
+  "favicon": "/images/favicon.svg",
+  "navigation": {
+    "anchors": [
+      {
+        "anchor": "Documentation",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/funds-flow",
+              "concepts/corridors",
+              "concepts/settlement"
+            ]
+          }
+        ]
+      },
+      {
+        "anchor": "API Reference",
+        "icon": "code",
+        "groups": [
+          {
+            "group": "API Reference",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/environments",
+              "api-reference/playground",
+              {
+                "group": "Payment Intents",
+                "pages": [
+                  "api-reference/payment-intents/create",
+                  "api-reference/payment-intents/get"
+                ]
+              },
+              "api-reference/webhooks",
+              "api-reference/jwt-inspector"
+            ]
+          }
+        ]
+      },
+      {
+        "anchor": "SDKs",
+        "icon": "mobile",
+        "groups": [
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/overview",
+              "sdks/ios",
+              "sdks/android",
+              "sdks/flutter",
+              "sdks/react-native",
+              "sdks/session-endpoint"
+            ]
+          }
+        ]
+      },
+      {
+        "anchor": "Changelog",
+        "icon": "list",
+        "groups": [
+          {
+            "group": "Reference",
+            "pages": [
+              "changelog"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/images/logo-light.svg",
+    "dark": "/images/logo-dark.svg"
+  },
+  "api": {
+    "openapi": "openapi.json"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": false
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
+  },
+  "background": {
+    "decoration": "windows",
+    "color": {
+      "light": "#ffffff",
+      "dark": "#091422"
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Contact",
+        "href": "mailto:support@zennopay.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://dashboard.zennopay.com"
+    }
+  },
+  "footer": {
+    "socials": {
+      "website": "https://zennopay.com"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Space Grotesk"
+    },
+    "body": {
+      "family": "Inter"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+---
+title: "API Reference"
+description: "REST over HTTPS. JSON in, JSON out. HMAC-signed."
+---
+
+The Zennopay API has two environments:
+
+<CodeGroup>
+```bash Production
+https://api.zennopay.com/v1
+```
+
+```bash Sandbox
+https://api.sandbox.zennopay.com/v1
+```
+</CodeGroup>
+
+Sandbox credentials are issued during onboarding. See
+[Environments](/api-reference/environments) for the full URL reference, key
+scoping rules, and the path from sandbox to production.
+
+## Conventions
+
+- **Transport:** HTTPS only. TLS 1.2+.
+- **Request bodies:** JSON, UTF-8.
+- **Responses:** JSON. Errors follow a consistent envelope (`error.code`,
+  `error.message`, `error.request_id`).
+- **Auth:** every request must be HMAC-signed. See [Authentication](/authentication).
+- **Money:** all amounts are integer USD cents (`amount_usd_cents`). We never
+  return floating-point dollars.
+- **Idempotency:** the HMAC nonce + timestamp combination is rejected on
+  replay (within a 10-minute window). For application-level idempotency, use
+  your own request ID and check intent state before retrying.
+
+## Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Create payment intent" icon="plus" href="/api-reference/payment-intents/create">
+    `POST /v1/payment_intents`
+  </Card>
+  <Card title="Get payment intent" icon="magnifying-glass" href="/api-reference/payment-intents/get">
+    `GET /v1/payment_intents/{intent_id}`
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
+    Event types + signature verification
+  </Card>
+</CardGroup>

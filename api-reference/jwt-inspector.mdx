@@ -1,0 +1,125 @@
+---
+title: "JWT inspector"
+description: "Paste a partner-minted Zennopay session JWT and see the decoded header + claims. Runs entirely client-side — your token never leaves your machine."
+---
+
+When a JWT-authenticated call returns 401, the fastest path to a fix is
+decoding the token and diffing the claims against what Zennopay expects.
+The inspector below does that locally in your browser — **no signature
+verification, no network request**. It's a debugging tool, not a security
+boundary.
+
+<Warning>
+  Treat any JWT you paste here as compromised. The inspector itself
+  doesn't transmit your token, but pasting a live session JWT anywhere is
+  a habit worth not building. For real verification, see
+  [Authentication §JWT verification](/authentication).
+</Warning>
+
+## Inspector
+
+Open your browser devtools (`Cmd+Opt+J` on macOS, `Ctrl+Shift+J` on
+Windows/Linux), paste the snippet below into the console, then call
+`zpDecode("<your-jwt>")`. The decoded header and claims print as JSON.
+
+<CodeGroup>
+```js Browser devtools
+// Paste this once per session, then call zpDecode(token).
+window.zpDecode = function (jwt) {
+  const parts = String(jwt).trim().split(".");
+  if (parts.length !== 3) {
+    throw new Error("Not a JWT: expected 3 dot-separated segments, got " + parts.length);
+  }
+  const b64urlDecode = (s) => {
+    const pad = "=".repeat((4 - (s.length % 4)) % 4);
+    const b64 = (s + pad).replace(/-/g, "+").replace(/_/g, "/");
+    return decodeURIComponent(
+      atob(b64).split("").map((c) =>
+        "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join("")
+    );
+  };
+  const header = JSON.parse(b64urlDecode(parts[0]));
+  const claims = JSON.parse(b64urlDecode(parts[1]));
+  const nowSec = Math.floor(Date.now() / 1000);
+  const checks = {
+    alg_is_RS256: header.alg === "RS256",
+    aud_is_zennopay_checkout: claims.aud === "zennopay-checkout",
+    has_zennopay_intent_id: typeof claims["zennopay:intent_id"] === "string",
+    has_zennopay_amount: Number.isInteger(claims["zennopay:amount_usd_cents"]),
+    corridor_is_supported:
+      claims["zennopay:corridor"] === "th_promptpay" ||
+      claims["zennopay:corridor"] === "vn_vietqr",
+    has_jti: typeof claims.jti === "string" && claims.jti.length > 0,
+    iat_present: typeof claims.iat === "number",
+    exp_present: typeof claims.exp === "number",
+    not_expired: typeof claims.exp === "number" && claims.exp > nowSec,
+    session_window_ok:
+      typeof claims.exp === "number" &&
+      typeof claims.iat === "number" &&
+      claims.exp - claims.iat <= 600,
+    iat_fresh:
+      typeof claims.iat === "number" && nowSec - claims.iat <= 900,
+  };
+  console.log("%cheader", "font-weight:bold", header);
+  console.log("%cclaims", "font-weight:bold", claims);
+  console.log("%cchecks (client-side only — server still verifies signature, jti, JWKS, intent match)", "font-weight:bold", checks);
+  return { header, claims, checks };
+};
+console.log("zpDecode loaded. Call zpDecode('<jwt>')");
+```
+
+```js Node REPL
+// Same idea, for `node`:
+function zpDecode(jwt) {
+  const parts = String(jwt).trim().split(".");
+  if (parts.length !== 3) throw new Error("Not a JWT");
+  const decode = (s) =>
+    JSON.parse(
+      Buffer.from(
+        s.replace(/-/g, "+").replace(/_/g, "/") +
+          "=".repeat((4 - (s.length % 4)) % 4),
+        "base64"
+      ).toString("utf8")
+    );
+  return { header: decode(parts[0]), claims: decode(parts[1]) };
+}
+console.log(zpDecode(process.argv[2]));
+```
+</CodeGroup>
+
+## What the inspector checks (and doesn't)
+
+The `checks` object the snippet returns runs the cheap, local
+sanity-checks. It's a fast-feedback layer on top of — not a replacement
+for — the server's 11-step verifier.
+
+| Check | What it catches | What it can't catch |
+|---|---|---|
+| `alg_is_RS256` | A token minted with the wrong algorithm. | Whether the RS256 signature actually verifies against your JWKS. |
+| `aud_is_zennopay_checkout` | Typos or wrong-environment tokens. | — |
+| `has_zennopay_intent_id` | Missing namespaced claim. | Whether the intent exists in Zennopay's DB. |
+| `corridor_is_supported` | A stale or unsupported corridor value (e.g. `th_legacy`). | Whether the corridor matches the intent's persisted corridor. |
+| `not_expired` / `iat_fresh` | Stale tokens. | Clock skew with Zennopay's server. |
+| `session_window_ok` | `exp - iat > 600` minted by a bug in your token generator. | — |
+| — | — | `jti` replay (server-only — Redis dedup). |
+| — | — | Signature verification (requires JWKS fetch). |
+| — | — | Intent's amount/corridor/partner match (server-only — DB lookup). |
+
+## When the inspector says "ok" but Zennopay still 401s
+
+A locally-passing JWT can still be rejected for any of these
+server-only reasons:
+
+1. **Signature doesn't verify** against the JWKS at the issuer's
+   `iss` URL. Most often a key rotation that hasn't propagated.
+2. **`jti` replay** — the token was already used. Mint a new one;
+   each JWT is single-use.
+3. **Intent mismatch** — the intent in your DB no longer matches the
+   token's `zennopay:amount_usd_cents` or `zennopay:corridor`, or the
+   intent is in a state past `authorized` (e.g. `captured`).
+4. **Partner mismatch** — the `iss` resolves to a different partner
+   than the one that owns the intent.
+
+For the full server-side ruleset, see
+[Authentication §JWT verification](/authentication).

@@ -1,0 +1,71 @@
+---
+title: "Get payment intent"
+api: "GET /v1/payment_intents/{intent_id}"
+description: "Fetch the current state of a payment intent."
+---
+
+## Path parameters
+
+<ParamField path="intent_id" type="string" required>
+  Zennopay intent ID, e.g. `zp_AbCd1234EfGh5678`.
+</ParamField>
+
+## Response
+
+<ResponseField name="intent_id" type="string">
+  The intent ID.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  One of `created`, `authorized`, `captured`, `failed`, `expired`, or `refunded`.
+</ResponseField>
+
+<ResponseField name="amount_usd_cents" type="integer">
+  Authorized amount in USD cents.
+</ResponseField>
+
+<ResponseField name="corridor" type="string">
+  `th_promptpay` or `vn_vietqr`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  RFC 3339 UTC timestamp.
+</ResponseField>
+
+<ResponseField name="captured_at" type="string">
+  Present only when `status` is `captured`.
+</ResponseField>
+
+## Example
+
+Example uses the sandbox host. Swap to `https://api.zennopay.com` in
+production. See [Environments](/api-reference/environments).
+
+<CodeGroup>
+```bash Sandbox
+curl https://api.sandbox.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678 \
+  -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
+  -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
+  -H "X-Zennopay-Nonce: ..." \
+  -H "X-Zennopay-Signature: ..."
+```
+
+```bash Production
+curl https://api.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678 \
+  -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
+  -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
+  -H "X-Zennopay-Nonce: ..." \
+  -H "X-Zennopay-Signature: ..."
+```
+</CodeGroup>
+
+```json Response
+{
+  "intent_id": "zp_AbCd1234EfGh5678",
+  "status": "captured",
+  "amount_usd_cents": 345,
+  "corridor": "th_promptpay",
+  "created_at": "2026-05-21T14:30:00Z",
+  "captured_at": "2026-05-21T14:31:12Z"
+}
+```
