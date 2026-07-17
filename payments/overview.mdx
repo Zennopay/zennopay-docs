@@ -40,8 +40,8 @@ merchant on staging.
     </Frame>
   </Step>
   <Step title="PaymentSheet: slide to pay → result">
-    <Frame caption="Slide-to-pay fires the confirm exactly once; the sheet polls to a terminal state and shows the receipt.">
-      <img src="/images/sdk-demo/04-sheet-success.png" width="280" alt="The success screen: Payment sent, with merchant and amount details." />
+    <Frame caption="Slide-to-pay fires the confirm exactly once; the sheet polls to a terminal state and shows a shareable receipt.">
+      <img src="/images/sdk-demo/04-sheet-success.png" width="280" alt="The receipt: Payment successful with amount, merchant, masked account, transaction ID, and purpose." />
     </Frame>
   </Step>
   <Step title="Your app: back in control">
@@ -61,8 +61,9 @@ merchant on staging.
 | [React Native](/payments/react-native) | `@zennopay/react-native` (npm) | `npm install @zennopay/react-native` | RN 0.70 (bridges the native SDKs) |
 
 Every platform has the same shape: one `present` call in, one `PaymentResult`
-out — `completed` / `canceled` / `failed` (Flutter and React Native also
-surface a first-class `pending` for poll timeouts).
+out — `completed` / `canceled` / `failed` / `pending` (delivered when the user
+leaves while the payout is still processing, or when polling times out; the
+payment resolves asynchronously and unspent funds are released automatically).
 
 ## How it works
 
@@ -127,7 +128,13 @@ The SDK owns the entire payment surface, so you never build:
   idempotency key persisted before the network call.
 - **Status polling, retries, and recovery** — including re-minting an expired
   session via your `refreshSession` hook and recovering the true terminal
-  state after a process death mid-confirm.
+  state after a process death mid-confirm. Slow payouts get a processing
+  state with honest copy, a "taking longer than usual" escalation, and a
+  `pending` result if the user leaves early:
+
+  <Frame caption="Payouts are asynchronous. The sheet says so instead of spinning silently, and the user can safely leave.">
+    <img src="/images/sdk-demo/06-sheet-processing.png" width="280" alt="The processing screen: spinner, 'this can take up to 30 seconds', a tip that the merchant may have already received the payment, and a Done button." />
+  </Frame>
 - **Per-user regulatory limits** — Zennopay enforces
   [corridor limits](/fundamentals/limits) automatically (Vietnam: ₫5,000,000
   per transaction, ₫10,000,000 per day, ₫25,000,000 per month per user) and
