@@ -9,9 +9,9 @@
   },
   "favicon": "/images/favicon.svg",
   "navigation": {
-    "anchors": [
+    "tabs": [
       {
-        "anchor": "Documentation",
+        "tab": "Documentation",
         "icon": "book-open",
         "groups": [
           {
@@ -19,21 +19,41 @@
             "pages": [
               "introduction",
               "quickstart",
-              "authentication"
+              "how-zennopay-works"
             ]
           },
           {
-            "group": "Concepts",
+            "group": "Accept payments",
             "pages": [
+              "payments/overview",
+              "payments/session-endpoint",
+              "payments/ios",
+              "payments/android",
+              "payments/flutter",
+              "payments/react-native",
+              "payments/testing"
+            ]
+          },
+          {
+            "group": "Fundamentals",
+            "pages": [
+              "authentication",
               "concepts/funds-flow",
               "concepts/corridors",
-              "concepts/settlement"
+              "concepts/settlement",
+              "fundamentals/limits"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "changelog"
             ]
           }
         ]
       },
       {
-        "anchor": "API Reference",
+        "tab": "API Reference",
         "icon": "code",
         "groups": [
           {
@@ -54,38 +74,35 @@
             ]
           }
         ]
-      },
-      {
-        "anchor": "SDKs",
-        "icon": "mobile",
-        "groups": [
-          {
-            "group": "SDKs",
-            "pages": [
-              "sdks/overview",
-              "sdks/ios",
-              "sdks/android",
-              "sdks/flutter",
-              "sdks/react-native",
-              "sdks/session-endpoint"
-            ]
-          }
-        ]
-      },
-      {
-        "anchor": "Changelog",
-        "icon": "list",
-        "groups": [
-          {
-            "group": "Reference",
-            "pages": [
-              "changelog"
-            ]
-          }
-        ]
       }
     ]
   },
+  "redirects": [
+    {
+      "source": "/sdks/overview",
+      "destination": "/payments/overview"
+    },
+    {
+      "source": "/sdks/session-endpoint",
+      "destination": "/payments/session-endpoint"
+    },
+    {
+      "source": "/sdks/ios",
+      "destination": "/payments/ios"
+    },
+    {
+      "source": "/sdks/android",
+      "destination": "/payments/android"
+    },
+    {
+      "source": "/sdks/flutter",
+      "destination": "/payments/flutter"
+    },
+    {
+      "source": "/sdks/react-native",
+      "destination": "/payments/react-native"
+    }
+  ],
   "logo": {
     "light": "/images/logo-light.svg",
     "dark": "/images/logo-dark.svg"

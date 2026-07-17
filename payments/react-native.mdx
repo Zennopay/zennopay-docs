@@ -4,7 +4,7 @@ description: "Present the Zennopay PaymentSheet from React Native via a thin nat
 ---
 
 `@zennopay/react-native` is a **native bridge**: a thin JS API over the native
-Zennopay [iOS](/sdks/ios) and [Android](/sdks/android) PaymentSheets. The
+Zennopay [iOS](/payments/ios) and [Android](/payments/android) PaymentSheets. The
 camera scanner, slide-to-pay physics, and confirm/status UI all render
 natively — nothing is re-implemented in JS. One `await presentSheet(...)`, one
 `PaymentResult`.
@@ -12,11 +12,17 @@ natively — nothing is re-implemented in JS. One `await presentSheet(...)`, one
 It supports both the legacy bridge and the new architecture
 (Fabric/TurboModules) — the module is interop-compatible.
 
+<Frame caption="The PaymentSheet, end to end, presented from the sample wallet app.">
+  <img src="/images/sdk-demo/flow.gif" width="320" alt="Animated flow: scan a QR code, review the amount and USD quote, slide to pay, and see the success screen." />
+</Frame>
+
 ## Requirements
 
 - React Native 0.70+, React 17+
 - The **native Zennopay SDKs must be linked** (see below) — this package is
   the JS surface, not the implementation
+- A backend [session endpoint](/payments/session-endpoint) that creates the
+  intent and mints the session JWT
 
 ## Install
 
@@ -56,7 +62,26 @@ manifest; the SDK requests it at runtime.
 Rebuild the app after installing (`npx react-native run-ios` /
 `run-android`) — a Metro-only reload will not pick up the native module.
 
-## Quickstart
+## Configure
+
+```ts
+// Provider-wide default:
+<ZennopayProvider config={{ environment: 'production' }}>...</ZennopayProvider>
+
+// Or per call (overrides the provider):
+await presentSheet({
+  intentId,
+  sessionJwt,
+  config: { environment: 'staging' },          // SANDBOX pill shown
+  // config: { apiBaseUrl: 'http://localhost:3000' },  // custom gateway
+});
+```
+
+Your API keys never live in the app: per payment, your backend
+[creates the intent and mints a session JWT](/payments/session-endpoint) and
+returns both to your app. The SDK holds only that short-lived session token.
+
+## Present the PaymentSheet
 
 Wrap your app in `ZennopayProvider` (sets the default environment), then call
 `presentSheet` from the `useZennopay()` hook:
@@ -121,7 +146,7 @@ import { presentSheet } from '@zennopay/react-native';
 const result = await presentSheet({ intentId, sessionJwt, config: { environment: 'staging' } });
 ```
 
-### The result
+## Handle the result
 
 ```ts
 type PaymentResult =
@@ -143,22 +168,7 @@ type PaymentResult =
 `pending` means status polling timed out — the payment may still settle;
 reconcile via your [webhook](/api-reference/webhooks) or transaction history.
 
-## Configuration
-
-```ts
-// Provider-wide default:
-<ZennopayProvider config={{ environment: 'production' }}>...</ZennopayProvider>
-
-// Or per call (overrides the provider):
-await presentSheet({
-  intentId,
-  sessionJwt,
-  config: { environment: 'staging' },          // SANDBOX pill shown
-  // config: { apiBaseUrl: 'http://localhost:3000' },  // custom gateway
-});
-```
-
-## Appearance
+## Customize appearance
 
 Theming is a plain JS object, serialized to the native `ZennopayAppearance`:
 
@@ -195,7 +205,7 @@ natively and can't be overridden.
   placed in a URL. Confirm idempotency, retries, and relaunch recovery are
   owned by the native SDKs.
 
-## Testing
+## Test
 
 - **Simulator/emulator:** no usable camera — the native sheet falls back to
   paste-QR; paste any VietQR payload string.
@@ -205,3 +215,23 @@ natively and can't be overridden.
 - **Link check:** if `presentSheet` rejects with `native_sdk_unavailable`,
   re-run `pod install` / a full Gradle build — the JS package is installed but
   the native SDK isn't.
+
+The full sandbox checklist — including limit-blocked payments and pending
+reconciliation — is in [Test your integration](/payments/testing).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Build your session endpoint" icon="server" href="/payments/session-endpoint">
+    The one backend route the sheet needs.
+  </Card>
+  <Card title="Test your integration" icon="vial" href="/payments/testing">
+    The sandbox loops to run before release.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
+    Reconcile terminal states server-side.
+  </Card>
+  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+    The corridor limits Zennopay enforces for you.
+  </Card>
+</CardGroup>

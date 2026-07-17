@@ -1,0 +1,93 @@
+---
+title: "Test your integration"
+description: "Run the whole payment flow in the sandbox — no camera, no real money — before going live."
+---
+
+Everything the PaymentSheet does in production it also does in the sandbox:
+scan validation, FX quoting, slide-to-pay, status polling, webhooks, and
+limit enforcement. This page collects the loops worth running before release.
+
+## Point the SDK at the sandbox
+
+The environment is a config value, not a code path — one integration serves
+testing and production:
+
+| Platform | Sandbox | Production |
+|---|---|---|
+| [iOS](/payments/ios) | `config: .staging` | `config: .production` |
+| [Android](/payments/android) | `ZennopayConfig.STAGING` | `ZennopayConfig.PRODUCTION` |
+| [Flutter](/payments/flutter) | `ZennopayConfig.staging` | `ZennopayConfig.production` |
+| [React Native](/payments/react-native) | `{ environment: 'staging' }` | `{ environment: 'production' }` |
+
+In the sandbox the sheet shows a **SANDBOX** pill in its header, so a build
+pointed at the wrong environment is visible at a glance. Your backend must
+use its sandbox credentials against the sandbox REST host — sandbox HMAC keys
+are rejected by production and vice versa (see
+[Environments](/api-reference/environments)).
+
+## Scanning without a camera
+
+Simulators and emulators have no usable camera. The sheet detects this and
+swaps the viewport for the **paste-QR** fallback automatically — paste any
+VietQR/EMVCo payload string and the flow proceeds identically, because the
+backend does the authoritative parse (CRC, tags, merchant extraction) either
+way. The same fallback appears on real devices when the user denies camera
+access, so the flow is always completable.
+
+## The loops to run
+
+<Steps>
+  <Step title="Sandbox end-to-end">
+    Run the sandbox config with a session from your sandbox backend and a
+    real VietQR payload (paste-QR works fine). The payout runs on the sandbox
+    rail and the intent reaches `captured` — assert your `completed` handling
+    debits your ledger and renders the receipt, and that your
+    [webhook](/api-reference/webhooks) endpoint received
+    `payment_intent.captured`.
+  </Step>
+  <Step title="Fail-fast token checks">
+    Pass a blank or mismatched session JWT and assert an immediate `failed`
+    with `invalid_jwt` / `intent_mismatch` — the SDK validates the token's
+    structure, expiry, and intent binding before showing any UI.
+  </Step>
+  <Step title="Session expiry mid-flow">
+    Mint a session with a short `exp` and let it lapse inside the sheet; your
+    `refreshSession` hook should re-mint for the same intent and the flow
+    should continue without the user noticing.
+  </Step>
+  <Step title="A limit-blocked payment">
+    [Per-user corridor limits](/fundamentals/limits) are enforced against the
+    same windows in sandbox. Drive a payment over the per-transaction limit
+    and assert the sheet renders the limit copy and your app receives
+    `failed` with `limit_exceeded`.
+  </Step>
+  <Step title="Pending and reconciliation">
+    If status polling times out, the result is `pending` (Flutter and React
+    Native) or `failed` with `timed_out` (iOS and Android) — the payment may
+    still settle. Verify you reconcile via the webhook or
+    `GET /v1/payment_intents/:id` rather than assuming a terminal failure.
+  </Step>
+</Steps>
+
+## Before release: a physical device
+
+Camera scanning, the torch and gallery fallbacks, and the runtime permission
+prompt (Android) can only be exercised for real on hardware — that's the
+pre-release checklist on every platform guide.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Environments" icon="server" href="/api-reference/environments">
+    Base URLs and how keys map to sandbox vs production.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
+    Verify signatures and reconcile terminal states.
+  </Card>
+  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+    The corridor limits enforced in both environments.
+  </Card>
+  <Card title="JWT inspector" icon="magnifying-glass" href="/api-reference/jwt-inspector">
+    Paste a session JWT and validate its claims.
+  </Card>
+</CardGroup>

@@ -52,10 +52,11 @@ flowchart LR
   the corridor's local rails through Zennopay's licensed payout partners.
 - The partner debits its end user on **its own ledger**, in parallel. Zennopay
   never touches the partner's user balances.
-- Zennopay automatically enforces the corridor's per-user regulatory limits at
+- Zennopay automatically enforces the corridor's
+  [per-user regulatory limits](/fundamentals/limits) at
   confirm time (Vietnam: ₫5,000,000 per transaction, ₫10,000,000 per day,
   ₫25,000,000 per month). Partners build nothing for this — the
-  [PaymentSheet](/sdks/overview) renders the limit copy when a payment is
+  [PaymentSheet](/payments/overview) renders the limit copy when a payment is
   blocked.
 
 ## How a payment moves

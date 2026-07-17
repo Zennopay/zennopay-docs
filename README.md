@@ -13,11 +13,16 @@ merchant from a USD wallet balance.
 |---|---|
 | `introduction.mdx` | One-page overview of what Zennopay does and who uses it |
 | `quickstart.mdx` | 10-minute onboarding for partner backends |
+| `how-zennopay-works.mdx` | One diagram of the whole system, with links to go deeper |
+| `payments/` | Accept payments: PaymentSheet overview, session endpoint, iOS, Android, Flutter, React Native, testing |
 | `authentication.mdx` | HMAC + JWT dual-layer auth, with test vectors |
-| `api-reference/` | REST endpoints (Payment Intents, Webhooks) |
-| `sdks/` | The PaymentSheet: overview, iOS, Android, Flutter, React Native, session endpoint |
 | `concepts/` | Funds flow, corridors, settlement & reconciliation |
+| `fundamentals/` | Per-user corridor limits |
+| `api-reference/` | REST endpoints (Payment Intents, Webhooks) |
 | `changelog.mdx` | Release notes |
+
+Old `/sdks/*` URLs redirect to `/payments/*` via the `redirects` array in
+`docs.json`.
 
 ## Preview locally
 

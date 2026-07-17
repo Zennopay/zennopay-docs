@@ -14,13 +14,13 @@ There is no browser tab, no redirect, and no URL scheme. The camera scanner,
 slide-to-pay physics, quote refresh, retries, and status polling are all inside
 the sheet.
 
-<Frame caption="One payment, end to end, in the demo wallet app — all rendered by the SDK.">
+<Frame caption="One payment, end to end, in the sample wallet app — all rendered by the SDK.">
   <img src="/images/sdk-demo/flow.gif" width="320" alt="Animated flow: scan a VietQR code, review the amount and USD quote, slide to pay, see the success screen, and return to the wallet with the balance debited." />
 </Frame>
 
 ## The flow, screen by screen
 
-These are real captures from the [demo wallet app](#demo-app) paying a VietQR
+These are real captures from the [sample wallet app](#sample-app) paying a VietQR
 merchant on staging.
 
 <Steps>
@@ -55,10 +55,10 @@ merchant on staging.
 
 | Platform | Package | Install | Minimums |
 |---|---|---|---|
-| [iOS](/sdks/ios) | `Zennopay` (Swift Package) | `https://github.com/Zennopay/zennopay-ios-sdk` | iOS 16, Swift 5.9 |
-| [Android](/sdks/android) | `com.zennopay:sdk` (Maven) | `implementation("com.zennopay:sdk:0.2.0")` | minSdk 24, Compose |
-| [Flutter](/sdks/flutter) | `zennopay_flutter` (pub.dev) | `zennopay_flutter: ^0.1.0` | Flutter 3.19, Dart 3.4 |
-| [React Native](/sdks/react-native) | `@zennopay/react-native` (npm) | `npm install @zennopay/react-native` | RN 0.70 (bridges the native SDKs) |
+| [iOS](/payments/ios) | `Zennopay` (Swift Package) | `https://github.com/Zennopay/zennopay-ios-sdk` | iOS 16, Swift 5.9 |
+| [Android](/payments/android) | `com.zennopay:sdk` (Maven) | `implementation("com.zennopay:sdk:0.2.0")` | minSdk 24, Compose |
+| [Flutter](/payments/flutter) | `zennopay_flutter` (pub.dev) | `zennopay_flutter: ^0.1.0` | Flutter 3.19, Dart 3.4 |
+| [React Native](/payments/react-native) | `@zennopay/react-native` (npm) | `npm install @zennopay/react-native` | RN 0.70 (bridges the native SDKs) |
 
 Every platform has the same shape: one `present` call in, one `PaymentResult`
 out — `completed` / `canceled` / `failed` (Flutter and React Native also
@@ -102,7 +102,7 @@ sequenceDiagram
 
 The session token setup — creating the intent and minting the JWT — is the only
 backend work. It is documented end to end, with a complete Node.js reference
-implementation, in [Build your session endpoint](/sdks/session-endpoint).
+implementation, in [Build your session endpoint](/payments/session-endpoint).
 
 <Info>
   **Trust model.** Your **publishable key** (`pk_...`) identifies your app and
@@ -128,16 +128,17 @@ The SDK owns the entire payment surface, so you never build:
 - **Status polling, retries, and recovery** — including re-minting an expired
   session via your `refreshSession` hook and recovering the true terminal
   state after a process death mid-confirm.
-- **Per-user regulatory limits** — Zennopay enforces corridor limits
-  automatically (Vietnam: ₫5,000,000 per transaction, ₫10,000,000 per day,
-  ₫25,000,000 per month per user) and the sheet renders the right copy.
+- **Per-user regulatory limits** — Zennopay enforces
+  [corridor limits](/fundamentals/limits) automatically (Vietnam: ₫5,000,000
+  per transaction, ₫10,000,000 per day, ₫25,000,000 per month per user) and
+  the sheet renders the right copy.
 - **New corridors** — when a corridor lights up (Thailand PromptPay is next),
   existing integrations get it with zero client work.
 
-## Demo app
+## Sample app
 
 The screenshots above come from the Zennopay sample wallet app — a reference
-integration that exercises the [session endpoint contract](/sdks/session-endpoint)
+integration that exercises the [session endpoint contract](/payments/session-endpoint)
 and the `presentCheckout` call against the sandbox. Ask your Zennopay
 integration engineer for the sample project.
 
@@ -150,5 +151,20 @@ integration engineer for the sample project.
   registered URL scheme are gone. Replace the call with
   `presentCheckout` / `presentSheet`, delete your URL-scheme registration, and
   add the camera usage declaration. See the migration notes at the top of the
-  [iOS](/sdks/ios) and [Android](/sdks/android) pages.
+  [iOS](/payments/ios) and [Android](/payments/android) pages.
 </Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="iOS" icon="apple" href="/payments/ios" />
+  <Card title="Android" icon="android" href="/payments/android" />
+  <Card title="Flutter" icon="mobile" href="/payments/flutter" />
+  <Card title="React Native" icon="react" href="/payments/react-native" />
+  <Card title="Build your session endpoint" icon="server" href="/payments/session-endpoint">
+    The one backend route every payment starts with.
+  </Card>
+  <Card title="Test your integration" icon="vial" href="/payments/testing">
+    The sandbox loops to run before release.
+  </Card>
+</CardGroup>

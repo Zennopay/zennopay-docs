@@ -3,11 +3,15 @@ title: "Android"
 description: "Launch the native Zennopay PaymentSheet from your Android app — Kotlin and Compose."
 ---
 
-The Zennopay Android SDK launches the [PaymentSheet](/sdks/overview) — the full
+The Zennopay Android SDK launches the [PaymentSheet](/payments/overview) — the full
 native pay experience (QR scan → amount + FX quote → slide-to-pay → result) —
 as its own full-screen Activity over your app, and delivers exactly one
 `PaymentResult` to your callback. The UI is Jetpack Compose; scanning is
 CameraX + ML Kit, on-device.
+
+<Frame caption="The PaymentSheet, end to end, presented from the sample wallet app.">
+  <img src="/images/sdk-demo/flow.gif" width="320" alt="Animated flow: scan a QR code, review the amount and USD quote, slide to pay, and see the success screen." />
+</Frame>
 
 <Warning>
   **Migrating from hosted checkout (beta)?** The Chrome Custom Tab, the
@@ -24,6 +28,8 @@ CameraX + ML Kit, on-device.
 - Kotlin 1.9+, AndroidX
 - Your app does **not** need to use Compose — the sheet runs in its own
   Activity. A Compose-first entry point is provided for hosts that are.
+- A backend [session endpoint](/payments/session-endpoint) that creates the
+  intent and mints the session JWT
 
 ## Install
 
@@ -47,7 +53,7 @@ dependencyResolutionManagement {
 }
 ```
 
-## Camera permission
+### Camera permission
 
 The SDK's manifest already merges in `<uses-permission android:name="android.permission.CAMERA" />`
 (with the camera marked as an optional feature), and the SDK requests the
@@ -59,11 +65,32 @@ manifest — just declare camera use in your Play Store listing.
   fallback — the flow is always completable without a camera.
 </Note>
 
-## Quickstart
+## Configure
 
-Per payment, your backend [creates the intent and mints a session
-JWT](/sdks/session-endpoint), returns both to your app, and your app makes one
-call. Two integration patterns:
+The environment is a value, not a code path:
+
+```kotlin
+ZennopayConfig.STAGING      // https://api.staging.zennopay.com — SANDBOX pill shown (default)
+ZennopayConfig.PRODUCTION   // https://api.zennopay.com — real money, no sandbox chrome
+
+// Custom gateway (local dev, pentest):
+ZennopayConfig(
+    apiBaseUrl = "http://10.0.2.2:3000",
+    environment = ZennopayConfig.Environment.CUSTOM,
+)
+```
+
+You can also set a process-wide default once with
+`Zennopay.configure(config)` — per-call `config` still overrides it.
+
+Your API keys never live in the app: per payment, your backend
+[creates the intent and mints a session JWT](/payments/session-endpoint) and
+returns both to your app. The SDK holds only that short-lived session token.
+
+## Present the PaymentSheet
+
+With a checkout session from your backend in hand, your app makes one call.
+Two integration patterns:
 
 ### Pattern 1 — Compose launcher (recommended)
 
@@ -145,7 +172,7 @@ to that Activity **in memory** — it is never serialized into the launching
   call.
 </Tip>
 
-### The result
+## Handle the result
 
 ```kotlin
 sealed class PaymentResult {
@@ -168,26 +195,11 @@ sealed class PaymentResult {
 `ZennopayError` is a sealed taxonomy with stable `code` strings
 (`InvalidJwt`, `IntentMismatch`, `JwtExpired`, `MalformedToken`,
 `InvalidIssuer`, quote/confirm/network cases, …) — exhaustive in a `when`.
+On a timeout the payment is effectively *pending* — it may still settle;
+reconcile via your [webhook](/api-reference/webhooks) or
+`GET /v1/payment_intents/:id` rather than assuming a terminal failure.
 
-## Configuration
-
-The environment is a value, not a code path:
-
-```kotlin
-ZennopayConfig.STAGING      // https://api.staging.zennopay.com — SANDBOX pill shown (default)
-ZennopayConfig.PRODUCTION   // https://api.zennopay.com — real money, no sandbox chrome
-
-// Custom gateway (local dev, pentest):
-ZennopayConfig(
-    apiBaseUrl = "http://10.0.2.2:3000",
-    environment = ZennopayConfig.Environment.CUSTOM,
-)
-```
-
-You can also set a process-wide default once with
-`Zennopay.configure(config)` — per-call `config` still overrides it.
-
-## Appearance
+## Customize appearance
 
 `ZennopayAppearance` themes the sheet to your brand — colors, corner radii,
 typography, primary button, and an optional header logo:
@@ -224,7 +236,7 @@ Zennopay look, following system light/dark.
   for state signals.
 </Note>
 
-## Testing
+## Test
 
 - **Emulator:** the emulator's virtual camera won't decode a real QR reliably —
   use the sheet's **paste-QR** fallback (or the emulator's virtual-scene camera
@@ -237,6 +249,9 @@ Zennopay look, following system light/dark.
   `Failed(InvalidJwt)` / `Failed(IntentMismatch)` with no UI.
 - **Physical device:** camera scanning and the runtime-permission prompt are
   the pre-release checklist.
+
+The full sandbox checklist — including limit-blocked payments and pending
+reconciliation — is in [Test your integration](/payments/testing).
 
 ## Under the hood (what you can rely on)
 
@@ -251,3 +266,20 @@ Zennopay look, following system light/dark.
 ## ProGuard / R8
 
 The SDK ships consumer rules; no additional configuration is needed.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Build your session endpoint" icon="server" href="/payments/session-endpoint">
+    The one backend route the sheet needs.
+  </Card>
+  <Card title="Test your integration" icon="vial" href="/payments/testing">
+    The sandbox loops to run before release.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
+    Reconcile terminal states server-side.
+  </Card>
+  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+    The corridor limits Zennopay enforces for you.
+  </Card>
+</CardGroup>

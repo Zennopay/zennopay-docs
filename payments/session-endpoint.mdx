@@ -3,7 +3,7 @@ title: "Build your session endpoint"
 description: "The one backend route the PaymentSheet needs: create a payment intent, mint a session token."
 ---
 
-Every [PaymentSheet](/sdks/overview) presentation starts with one round-trip to
+Every [PaymentSheet](/payments/overview) presentation starts with one round-trip to
 **your** backend. Your app asks for a "checkout session"; your server does two
 things and returns the pair:
 
@@ -37,8 +37,8 @@ From the Zennopay Console → **Developers** tab:
 
 | Credential | Lives | Used for |
 |---|---|---|
-| Publishable key (`pk_test_...` / `pk_live_...`) | In your app — safe to ship | Identifies your integration |
-| Secret key (`sk_test_...` / `sk_live_...`) + key ID | Server only — never in a client | HMAC-signing server-to-server calls |
+| Publishable key (`pk_test_...` in sandbox; the live-mode key in production) | In your app — safe to ship | Identifies your integration |
+| Secret key (`sk_test_...` in sandbox; the live-mode key in production) + key ID | Server only — never in a client | HMAC-signing server-to-server calls |
 | Your RS256 keypair | Private key server only; public key published at your [JWKS endpoint](/authentication#jwks-endpoint-requirements) | Signing session JWTs |
 
 ## Step 1 — Create the payment intent
@@ -58,9 +58,10 @@ and the corridor:
 
 <Warning>
   `partner_user_id` must be your internal, opaque identifier — never a raw
-  government ID (passport number, national ID). Zennopay enforces per-user
-  regulatory limits against this ID (Vietnam: ₫5,000,000/transaction,
-  ₫10,000,000/day, ₫25,000,000/month), so it must be stable per user.
+  government ID (passport number, national ID). Zennopay enforces
+  [per-user regulatory limits](/fundamentals/limits) against this ID
+  (Vietnam: ₫5,000,000/transaction, ₫10,000,000/day, ₫25,000,000/month), so
+  it must be stable per user.
 </Warning>
 
 Send an `Idempotency-Key` header (a UUID) so a network retry can't create two
@@ -233,3 +234,20 @@ preserves the scan/quote/confirm state across the refresh.
 - **Mint after auth, not before.** Only mint a session for a user who is
   logged in, KYC-verified, and sanctions-screened *right now* — the
   attestations you sign are per-payment statements, not cached facts.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Present the PaymentSheet" icon="mobile" href="/payments/overview">
+    Hand the session to the SDK on iOS, Android, Flutter, or React Native.
+  </Card>
+  <Card title="Test your integration" icon="vial" href="/payments/testing">
+    Drive the whole flow in the sandbox before going live.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    The full HMAC signing spec and JWT claim contract.
+  </Card>
+  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+    The corridor limits enforced against your partner_user_id.
+  </Card>
+</CardGroup>

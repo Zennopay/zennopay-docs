@@ -1,0 +1,45 @@
+---
+title: "Per-user limits"
+description: "The corridor-specific regulatory limits Zennopay enforces per end user — automatically."
+---
+
+Each corridor carries per-user regulatory limits set by the destination
+market. Zennopay enforces them **automatically at confirm time**, keyed on the
+`partner_user_id` you supply when [creating the
+intent](/api-reference/payment-intents/create) — you build nothing for this,
+and the [PaymentSheet](/payments/overview) renders the right copy when a
+payment is blocked.
+
+## Vietnam — VietQR (`vn_vietqr`)
+
+| Window | Limit per user |
+|---|---|
+| Per transaction | ₫5,000,000 |
+| Per day | ₫10,000,000 |
+| Per month | ₫25,000,000 |
+
+Limits apply to the local-currency (VND) value of the payment at the bound
+quote, per `partner_user_id`.
+
+For corridors not listed here, current limits are provided during onboarding —
+contact **partners@zennopay.com**.
+
+## What enforcement looks like
+
+- The check runs server-side on `POST /v1/payment_intents/:id/confirm`. A
+  payment that would breach a window is rejected before any money moves.
+- The SDK surfaces it as a typed failure with the stable error code
+  `limit_exceeded`; the sheet explains the limit to the user in plain
+  language, so your app only needs to handle the terminal
+  `failed` result like any other.
+- Limits are enforced against the same windows in sandbox, so you can
+  [test the blocked-payment path](/payments/testing) before going live.
+
+## Your side of the contract
+
+`partner_user_id` must be your internal, **opaque** identifier — never a raw
+government ID — and it must be **stable per user**: Zennopay accumulates the
+daily and monthly windows against it. Rotating the ID per payment would
+break limit enforcement (and your compliance posture). See
+[Build your session endpoint](/payments/session-endpoint) for where the ID is
+supplied and attested.

@@ -134,7 +134,7 @@ Full claim documentation is in [Authentication → JWT claims](/authentication#c
 ## 4. Present the PaymentSheet
 
 Pass the `intent_id` and session JWT to the Zennopay
-[PaymentSheet](/sdks/overview) on the user's device. The SDK renders the whole
+[PaymentSheet](/payments/overview) on the user's device. The SDK renders the whole
 pay experience natively, in-process — scan → amount + FX quote → slide-to-pay
 → result — and delivers one typed `PaymentResult` to your callback. No
 browser, no redirect, no URL scheme.
@@ -181,12 +181,13 @@ See the platform guides for the full lifecycle (camera permission, session
 refresh, theming, testing):
 
 <CardGroup cols={2}>
-  <Card title="PaymentSheet overview" icon="layer-group" href="/sdks/overview" />
-  <Card title="Session endpoint" icon="server" href="/sdks/session-endpoint" />
-  <Card title="iOS" icon="apple" href="/sdks/ios" />
-  <Card title="Android" icon="android" href="/sdks/android" />
-  <Card title="Flutter" icon="mobile" href="/sdks/flutter" />
-  <Card title="React Native" icon="react" href="/sdks/react-native" />
+  <Card title="PaymentSheet overview" icon="layer-group" href="/payments/overview" />
+  <Card title="Session endpoint" icon="server" href="/payments/session-endpoint" />
+  <Card title="iOS" icon="apple" href="/payments/ios" />
+  <Card title="Android" icon="android" href="/payments/android" />
+  <Card title="Flutter" icon="mobile" href="/payments/flutter" />
+  <Card title="React Native" icon="react" href="/payments/react-native" />
+  <Card title="Test your integration" icon="vial" href="/payments/testing" />
 </CardGroup>
 
 ## 5. Receive the webhook

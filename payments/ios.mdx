@@ -3,11 +3,15 @@ title: "iOS"
 description: "Present the native Zennopay PaymentSheet from your iOS app with one call."
 ---
 
-The Zennopay iOS SDK presents the [PaymentSheet](/sdks/overview) — the full
+The Zennopay iOS SDK presents the [PaymentSheet](/payments/overview) — the full
 native pay experience (QR scan → amount + FX quote → slide-to-pay → result) —
 modally over your view controller, and delivers exactly one typed
 `PaymentResult` to your callback. It is SwiftUI under the hood, dependency-free,
 and works from both UIKit and SwiftUI hosts.
+
+<Frame caption="The PaymentSheet, end to end, presented from the sample wallet app.">
+  <img src="/images/sdk-demo/flow.gif" width="320" alt="Animated flow: scan a QR code, review the amount and USD quote, slide to pay, and see the success screen." />
+</Frame>
 
 <Warning>
   **Migrating from hosted checkout (beta)?** `Zennopay.openCheckout(...)`, the
@@ -23,6 +27,8 @@ and works from both UIKit and SwiftUI hosts.
 - iOS 16.0+ (the presented flow uses modern SwiftUI APIs)
 - Swift 5.9+ / Xcode 15+
 - No third-party dependencies
+- A backend [session endpoint](/payments/session-endpoint) that creates the
+  intent and mints the session JWT
 
 ## Install
 
@@ -44,7 +50,7 @@ targets: [
 ]
 ```
 
-## Declare camera usage
+### Declare camera usage
 
 The sheet opens on a live camera scanner. iOS reads the permission prompt's
 usage string from **your** app bundle, so add to your `Info.plist`:
@@ -60,11 +66,29 @@ usage string from **your** app bundle, so add to your `Info.plist`:
   completable without a camera.
 </Note>
 
-## Quickstart
+## Configure
 
-Per payment, your backend [creates the intent and mints a session
-JWT](/sdks/session-endpoint), returns both to your app, and your app makes one
-call:
+`ZennopayConfig` selects the environment. It is a value, never a code path —
+one integration serves testing and production:
+
+```swift
+// Sandbox/testing (the default). Shows a "SANDBOX" pill in the sheet header.
+config: .staging          // https://api.staging.zennopay.com
+
+// Live traffic. Real money, no sandbox chrome.
+config: .production       // https://api.zennopay.com
+
+// Custom gateway (local development, pentest):
+config: ZennopayConfig(apiBaseURL: URL(string: "http://localhost:3000")!)
+```
+
+Your API keys never live in the app: per payment, your backend
+[creates the intent and mints a session JWT](/payments/session-endpoint) and
+returns both to your app. The SDK holds only that short-lived session token.
+
+## Present the PaymentSheet
+
+With a checkout session from your backend in hand, your app makes one call:
 
 ```swift
 import UIKit
@@ -127,11 +151,11 @@ fails fast with `.failed` instead of an empty sheet.
 <Tip>
   `presentCheckout` is `@MainActor` and needs a host view controller. From
   SwiftUI, present from the top-most `UIViewController` (via a small
-  `UIViewControllerRepresentable` or your scene's root controller) — the demo
-  app ships a compact helper for exactly this.
+  `UIViewControllerRepresentable` or your scene's root controller) — the
+  sample wallet app ships a compact helper for exactly this.
 </Tip>
 
-### The result
+## Handle the result
 
 ```swift
 public enum PaymentResult: Equatable, Sendable {
@@ -146,26 +170,12 @@ public enum PaymentResult: Equatable, Sendable {
 
 `ZennopayError` is a typed taxonomy (`invalidJWT`, `intentMismatch`,
 `jwtExpired`, `sessionExpired`, `quoteExpired`, `paymentFailed`, `timedOut`,
-`networkError`, …). On `.timedOut` the payment may still settle — reconcile via
-your [webhook](/api-reference/webhooks) or `GET /v1/payment_intents/:id`.
+`networkError`, …). On `.timedOut` the payment is effectively *pending* — it
+may still settle. Show a soft state and reconcile via your
+[webhook](/api-reference/webhooks) or `GET /v1/payment_intents/:id` rather
+than assuming a terminal failure.
 
-## Configuration
-
-`ZennopayConfig` selects the environment. It is a value, never a code path —
-one integration serves testing and production:
-
-```swift
-// Sandbox/testing (the default). Shows a "SANDBOX" pill in the sheet header.
-config: .staging          // https://api.staging.zennopay.com
-
-// Live traffic. Real money, no sandbox chrome.
-config: .production       // https://api.zennopay.com
-
-// Custom gateway (local development, pentest):
-config: ZennopayConfig(apiBaseURL: URL(string: "http://localhost:3000")!)
-```
-
-## Appearance
+## Customize appearance
 
 `ZennopayAppearance` themes the sheet to match your app — colors, corner radii,
 font, primary button, and an optional logo in the sheet header. Pass nothing
@@ -199,7 +209,7 @@ Zennopay.presentCheckout(
   product.
 </Note>
 
-## Testing in the Simulator
+## Test
 
 The Simulator has no camera. The sheet detects this and swaps the viewport for
 the **paste-QR** fallback automatically — paste any VietQR/EMVCo payload string
@@ -213,7 +223,9 @@ either way). Two useful loops:
    immediate `.failed(.invalidJWT)` / `.failed(.intentMismatch)` with no UI.
 
 On a physical device, camera scanning and the fallbacks are exercised for
-real — that's the pre-release checklist.
+real — that's the pre-release checklist. The full sandbox checklist —
+including limit-blocked payments and pending reconciliation — is in
+[Test your integration](/payments/testing).
 
 ## Under the hood (what you can rely on)
 
@@ -224,3 +236,20 @@ real — that's the pre-release checklist.
   double-debit.
 - On relaunch mid-payment, the SDK recovers the true terminal status with a
   `GET` rather than re-confirming.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Build your session endpoint" icon="server" href="/payments/session-endpoint">
+    The one backend route the sheet needs.
+  </Card>
+  <Card title="Test your integration" icon="vial" href="/payments/testing">
+    The sandbox loops to run before release.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
+    Reconcile terminal states server-side.
+  </Card>
+  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+    The corridor limits Zennopay enforces for you.
+  </Card>
+</CardGroup>

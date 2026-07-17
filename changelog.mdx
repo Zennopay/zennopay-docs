@@ -5,15 +5,19 @@ description: "Notable changes to the Zennopay public API and SDKs."
 
 ## 2026-07-17 — v0.2.0 — Native PaymentSheet
 
-- **New:** [PaymentSheet overview](/sdks/overview) — the native, in-process
+- **Docs:** restructured into task-first navigation — the SDK guides now live
+  under **[Accept payments](/payments/overview)**, with new
+  [Testing](/payments/testing) and [Per-user limits](/fundamentals/limits)
+  pages and path redirects from every `/sdks/*` URL.
+- **New:** [PaymentSheet overview](/payments/overview) — the native, in-process
   pay experience, with real captures from the sample wallet app.
-- **Rewritten:** [iOS](/sdks/ios) and [Android](/sdks/android) SDK guides for
+- **Rewritten:** [iOS](/payments/ios) and [Android](/payments/android) SDK guides for
   the native PaymentSheet (`presentCheckout`). The beta hosted-checkout model
   (browser tab + URL-scheme redirect) is deprecated and removed; each page
   carries a migration callout.
-- **New:** [Flutter](/sdks/flutter) (`zennopay_flutter`) and
-  [React Native](/sdks/react-native) (`@zennopay/react-native`) SDK guides.
-- **New:** [Build your session endpoint](/sdks/session-endpoint) — the
+- **New:** [Flutter](/payments/flutter) (`zennopay_flutter`) and
+  [React Native](/payments/react-native) (`@zennopay/react-native`) SDK guides.
+- **New:** [Build your session endpoint](/payments/session-endpoint) — the
   partner-backend contract (create intent + mint session JWT) with a complete
   Node.js reference implementation.
 - [Funds flow](/concepts/funds-flow) now includes a pre-fund → FBO →

@@ -3,17 +3,23 @@ title: "Flutter"
 description: "Present the Zennopay PaymentSheet from Flutter — one await, one PaymentResult."
 ---
 
-`zennopay_flutter` brings the [PaymentSheet](/sdks/overview) to Flutter with
+`zennopay_flutter` brings the [PaymentSheet](/payments/overview) to Flutter with
 the same shape as Stripe's Flutter SDK: one `await Zennopay.presentSheet(...)`
 and the terminal outcome is the resolved value. The sheet renders the full pay
 experience — QR scan → amount + FX quote → slide-to-pay → result — and your
 app never leaves the foreground.
+
+<Frame caption="The PaymentSheet, end to end, presented from the sample wallet app.">
+  <img src="/images/sdk-demo/flow.gif" width="320" alt="Animated flow: scan a QR code, review the amount and USD quote, slide to pay, and see the success screen." />
+</Frame>
 
 ## Requirements
 
 - Flutter 3.19+ / Dart 3.4+
 - iOS and Android targets (the sheet uses the device camera via
   `mobile_scanner`)
+- A backend [session endpoint](/payments/session-endpoint) that creates the
+  intent and mints the session JWT
 
 ## Install
 
@@ -38,11 +44,25 @@ The scanner uses the camera; add the platform declarations:
 to add. On denial (or no camera), the sheet falls back to a paste-QR field on
 both platforms.
 
-## Quickstart
+## Configure
 
-Per payment, your backend [creates the intent and mints a session
-JWT](/sdks/session-endpoint), returns both to your app, and your app awaits one
-call:
+The environment is a config value, not a code path:
+
+```dart
+ZennopayConfig.staging      // https://api.staging.zennopay.com — SANDBOX pill (default)
+ZennopayConfig.production   // https://api.zennopay.com — real money
+
+// Custom gateway (local dev):
+ZennopayConfig.custom('http://localhost:3000')
+```
+
+Your API keys never live in the app: per payment, your backend
+[creates the intent and mints a session JWT](/payments/session-endpoint) and
+returns both to your app. The SDK holds only that short-lived session token.
+
+## Present the PaymentSheet
+
+With a checkout session from your backend in hand, your app awaits one call:
 
 ```dart
 import 'package:flutter/material.dart';
@@ -87,7 +107,7 @@ Future<void> scanAndPay(BuildContext context) async {
   `context:`.
 </Tip>
 
-### The result
+## Handle the result
 
 Flutter promotes `pending` to a first-class case, and `Completed`/`Pending`
 carry an optional `Receipt`:
@@ -118,17 +138,7 @@ class Receipt {
   `ZennopayErrorCode` (`invalidJwt`, `intentMismatch`, `jwtExpired`,
   `quoteExpired`, `limitExceeded`, `networkError`, …).
 
-## Configuration
-
-```dart
-ZennopayConfig.staging      // https://api.staging.zennopay.com — SANDBOX pill (default)
-ZennopayConfig.production   // https://api.zennopay.com — real money
-
-// Custom gateway (local dev):
-ZennopayConfig.custom('http://localhost:3000')
-```
-
-## Appearance
+## Customize appearance
 
 `ZennopayAppearance` themes the sheet — colors (with per-mode dark variants),
 corner radii, typography, primary button, and an optional header logo:
@@ -174,7 +184,7 @@ await Zennopay.presentSheet(
 );
 ```
 
-## Testing
+## Test
 
 - **Simulator/emulator:** no usable camera — use the sheet's paste-QR fallback
   with any VietQR payload string; the backend does the authoritative parse.
@@ -183,3 +193,23 @@ await Zennopay.presentSheet(
   rail.
 - **Fail-fast checks:** a blank or mismatched JWT resolves immediately with
   `Failed` (`invalidJwt` / `intentMismatch`) before any UI is shown.
+
+The full sandbox checklist — including limit-blocked payments and pending
+reconciliation — is in [Test your integration](/payments/testing).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Build your session endpoint" icon="server" href="/payments/session-endpoint">
+    The one backend route the sheet needs.
+  </Card>
+  <Card title="Test your integration" icon="vial" href="/payments/testing">
+    The sandbox loops to run before release.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
+    Reconcile terminal states server-side.
+  </Card>
+  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+    The corridor limits Zennopay enforces for you.
+  </Card>
+</CardGroup>
