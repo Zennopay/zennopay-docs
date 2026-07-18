@@ -1,15 +1,49 @@
 ---
-title: "What is Zennopay"
-description: "Zennopay is a B2B API for cross-border QR payments in Southeast Asia."
+title: "Cross-border QR payments, one SDK."
+sidebarTitle: "Home"
+description: "Zennopay is a B2B SDK for cross-border QR payments in Southeast Asia. Your users scan any Thai PromptPay or Vietnamese VietQR code and pay from a USD wallet balance — inside your app, via one native PaymentSheet."
+mode: "wide"
 ---
+
+<Card title="Get started" icon="bolt" href="/quickstart" horizontal cta="Start building">
+  Stand up a sandbox integration end to end in about 10 minutes — sign your
+  first HMAC call, mint a session token, present the PaymentSheet.
+</Card>
+
+Already know the shape? Jump straight to the [PaymentSheet overview](/payments/overview).
+
+## Build your integration
+
+<CardGroup cols={3}>
+  <Card title="Make a payment" icon="qrcode" href="/payments/overview">
+    Present the native PaymentSheet — scan, confirm, slide to pay. One call in,
+    one PaymentResult out.
+  </Card>
+  <Card title="Session endpoint" icon="server" href="/payments/session-endpoint">
+    The one backend route every payment starts with: create an intent, mint the
+    session token.
+  </Card>
+  <Card title="Reopen a receipt" icon="receipt" href="/payments/reopen-receipt">
+    Keep your own history list; reopen the authoritative Zennopay receipt with
+    its live status.
+  </Card>
+  <Card title="Test your integration" icon="flask" href="/payments/testing">
+    Run the whole flow in the sandbox — no camera, no real money — before going
+    live.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/overview">
+    REST endpoints, webhooks, and an in-browser JWT inspector.
+  </Card>
+  <Card title="How Zennopay works" icon="diagram-project" href="/how-zennopay-works">
+    One diagram of the whole system — apps, money, and rails.
+  </Card>
+</CardGroup>
 
 ## What Zennopay does
 
-Zennopay lets a partner fintech offer its users a way to pay any Thai
-PromptPay or Vietnamese VietQR merchant — using their USD wallet balance,
-from inside the partner's own app.
-
-At v1 we cover two corridors:
+Zennopay lets a partner fintech offer its users a way to pay any Thai PromptPay
+or Vietnamese VietQR merchant — using their USD wallet balance, from inside the
+partner's own app. Two corridors are live today:
 
 <CardGroup cols={2}>
   <Card title="Thailand" icon="flag" href="/concepts/corridors">
@@ -20,49 +54,31 @@ At v1 we cover two corridors:
   </Card>
 </CardGroup>
 
-## Who this is for
-
-<CardGroup cols={2}>
-  <Card title="Partner backends" icon="server" href="/quickstart">
-    Server-to-server integration. Create payment intents, mint session JWTs,
-    receive webhooks.
-  </Card>
-  <Card title="Mobile app developers" icon="mobile" href="/payments/overview">
-    Present the native Zennopay PaymentSheet from iOS, Android, Flutter, or React Native.
-  </Card>
-</CardGroup>
-
 ## How a payment flows
 
 1. The end user opens the partner app and chooses to pay a SEA merchant.
 2. Partner backend calls **`POST /v1/payment_intents`** (signed with HMAC) to
    create a Zennopay intent.
-3. Partner backend mints a short-lived **session JWT** identifying that
+3. Partner backend mints a short-lived **session token** identifying that
    specific user + intent.
-4. Partner app opens the Zennopay SDK with the `intent_id` + JWT.
+4. Partner app opens the Zennopay SDK with the `intent_id` + token.
 5. The user scans the merchant QR, confirms the amount, and slides to pay.
 6. Zennopay debits the partner's pre-funded USD float, routes the transaction
-   to its licensed payout partner network for the destination corridor, and
-   the merchant receives local currency.
+   to its licensed payout partner network for the destination corridor, and the
+   merchant receives local currency.
 7. Zennopay sends the partner a webhook with the final status.
 
 The moving parts and where the money sits at each step are diagrammed in
 [How Zennopay works](/how-zennopay-works); the full auth sequence is in
-[Authentication →](/authentication) under "end-to-end flow."
+[Authentication](/authentication) under "end-to-end flow."
 
 ## What makes Zennopay different
 
-- **USD-only on our side.** We never hold THB or VND. The local payout
-  provider owns the FX leg.
-- **FBO custody.** Partner funds are held in a For-Benefit-Of account at our
-  US banking partner. Funds remain attributable to the partner (and
-  beneficially to its end users) at all times.
+- **USD-only on our side.** We never hold THB or VND. The local payout provider
+  owns the FX leg.
+- **FBO custody.** Partner funds are held in a For-Benefit-Of account at our US
+  banking partner. Funds remain attributable to the partner (and beneficially to
+  its end users) at all times.
 - **Two-layer auth.** Long-lived HMAC on the server side, short-lived
-  per-session JWT on the client side — the dual-token pattern common to
-  modern payment APIs.
-
-## Ready to build?
-
-<Card title="10-minute quickstart" icon="bolt" href="/quickstart">
-  Stand up a sandbox integration end-to-end.
-</Card>
+  per-session token on the client side — the dual-token pattern common to modern
+  payment APIs.

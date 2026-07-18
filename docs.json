@@ -3,11 +3,25 @@
   "theme": "palm",
   "name": "Zennopay",
   "colors": {
-    "primary": "#6560FF",
-    "light": "#c2c1ff",
-    "dark": "#091422"
+    "primary": "#444CE7",
+    "light": "#8891F5",
+    "dark": "#3A41D8"
   },
   "favicon": "/images/favicon.svg",
+  "seo": {
+    "indexing": "navigable",
+    "metatags": {
+      "og:site_name": "Zennopay Docs",
+      "og:title": "Zennopay Docs — Cross-border QR payments, one SDK",
+      "og:description": "Zennopay is a B2B SDK for cross-border QR payments in Southeast Asia. Your users scan any Thai PromptPay or Vietnamese VietQR code and pay from a USD wallet, inside your app, via one native PaymentSheet.",
+      "og:image": "https://docs.zennopay.in/images/og-image.png",
+      "og:type": "website",
+      "twitter:card": "summary_large_image",
+      "twitter:title": "Zennopay Docs — Cross-border QR payments, one SDK",
+      "twitter:description": "Embed cross-border QR payments in your app. PromptPay & VietQR payouts from a USD wallet via one native PaymentSheet.",
+      "twitter:image": "https://docs.zennopay.in/images/og-image.png"
+    }
+  },
   "navigation": {
     "tabs": [
       {

@@ -4,7 +4,7 @@
 
 ## Get started
 
-- [What is Zennopay](https://docs.zennopay.in/introduction.md): What Zennopay does, who it's for, and how a payment flows end to end.
+- [Zennopay Docs — home](https://docs.zennopay.in/introduction.md): Start here — what Zennopay does, the product tiles for each integration journey, and how a payment flows end to end.
 - [Quickstart](https://docs.zennopay.in/quickstart.md): Stand up a sandbox integration — sign your first HMAC call, mint a session JWT, present the PaymentSheet.
 - [How Zennopay works](https://docs.zennopay.in/how-zennopay-works.md): One diagram of the whole system — apps, money, and rails — with links to go deeper.
 
