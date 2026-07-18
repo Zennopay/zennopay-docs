@@ -4,40 +4,40 @@
 
 ## Get started
 
-- [What is Zennopay](https://docs.zennopay.com/introduction.md): What Zennopay does, who it's for, and how a payment flows end to end.
-- [Quickstart](https://docs.zennopay.com/quickstart.md): Stand up a sandbox integration — sign your first HMAC call, mint a session JWT, present the PaymentSheet.
-- [How Zennopay works](https://docs.zennopay.com/how-zennopay-works.md): One diagram of the whole system — apps, money, and rails — with links to go deeper.
+- [What is Zennopay](https://docs.zennopay.in/introduction.md): What Zennopay does, who it's for, and how a payment flows end to end.
+- [Quickstart](https://docs.zennopay.in/quickstart.md): Stand up a sandbox integration — sign your first HMAC call, mint a session JWT, present the PaymentSheet.
+- [How Zennopay works](https://docs.zennopay.in/how-zennopay-works.md): One diagram of the whole system — apps, money, and rails — with links to go deeper.
 
 ## Make payments
 
-- [Zennopay PaymentSheet overview](https://docs.zennopay.com/payments/overview.md): The native in-process payment UI — flow screenshots, platform matrix, sequence diagram, and what you don't have to build.
-- [Build your session endpoint](https://docs.zennopay.com/payments/session-endpoint.md): The partner-backend contract — create an intent (HMAC) and mint the session JWT, with a complete Node.js reference implementation and security notes.
-- [iOS](https://docs.zennopay.com/payments/ios.md): SwiftPM install, camera usage string, `Zennopay.presentCheckout` quickstart, appearance theming, Simulator testing, hosted-checkout migration.
-- [Android](https://docs.zennopay.com/payments/android.md): Maven install, Compose launcher and one-shot `presentCheckout` patterns, appearance theming, testing, hosted-checkout migration.
-- [Flutter](https://docs.zennopay.com/payments/flutter.md): `zennopay_flutter` install, `Zennopay.presentSheet` returning a `Future<PaymentResult>` (with first-class `Pending`), appearance, analytics hook.
-- [React Native](https://docs.zennopay.com/payments/react-native.md): `@zennopay/react-native` native bridge — install, native SDK linking, `useZennopay()` hook, `native_sdk_unavailable` troubleshooting.
-- [Test your integration](https://docs.zennopay.com/payments/testing.md): The sandbox loops to run before release — paste-QR without a camera, end-to-end to `captured`, fail-fast token checks, limit-blocked payments, pending reconciliation.
-- [Reopen a receipt](https://docs.zennopay.com/payments/reopen-receipt.md): You keep your own transaction-history list; mint a read-only, reusable, user-scoped receipt token (`aud: zennopay-receipt`) and call `presentReceipt` to reopen the authoritative Zennopay receipt with its live status — pending-poll, refunded state, and a cross-user 404 with no existence leak.
+- [Zennopay PaymentSheet overview](https://docs.zennopay.in/payments/overview.md): The native in-process payment UI — flow screenshots, platform matrix, sequence diagram, and what you don't have to build.
+- [Build your session endpoint](https://docs.zennopay.in/payments/session-endpoint.md): The partner-backend contract — create an intent (HMAC) and mint the session JWT, with a complete Node.js reference implementation and security notes.
+- [iOS](https://docs.zennopay.in/payments/ios.md): SwiftPM install, camera usage string, `Zennopay.presentCheckout` quickstart, appearance theming, Simulator testing, hosted-checkout migration.
+- [Android](https://docs.zennopay.in/payments/android.md): Maven install, Compose launcher and one-shot `presentCheckout` patterns, appearance theming, testing, hosted-checkout migration.
+- [Flutter](https://docs.zennopay.in/payments/flutter.md): `zennopay_flutter` install, `Zennopay.presentSheet` returning a `Future<PaymentResult>` (with first-class `Pending`), appearance, analytics hook.
+- [React Native](https://docs.zennopay.in/payments/react-native.md): `@zennopay/react-native` native bridge — install, native SDK linking, `useZennopay()` hook, `native_sdk_unavailable` troubleshooting.
+- [Test your integration](https://docs.zennopay.in/payments/testing.md): The sandbox loops to run before release — paste-QR without a camera, end-to-end to `captured`, fail-fast token checks, limit-blocked payments, pending reconciliation.
+- [Reopen a receipt](https://docs.zennopay.in/payments/reopen-receipt.md): You keep your own transaction-history list; mint a read-only, reusable, user-scoped receipt token (`aud: zennopay-receipt`) and call `presentReceipt` to reopen the authoritative Zennopay receipt with its live status — pending-poll, refunded state, and a cross-user 404 with no existence leak.
 
 ## Fundamentals
 
-- [Authentication](https://docs.zennopay.com/authentication.md): The dual-layer auth model — server-to-server HMAC signing and the RS256 client session JWT, with claims, JWKS requirements, and test vectors.
-- [Funds flow](https://docs.zennopay.com/concepts/funds-flow.md): USD pre-fund → FBO custody → per-payment drawdown → local-rail payout, with failure/refund handling and per-user limits.
-- [Corridors](https://docs.zennopay.com/concepts/corridors.md): Supported corridors — Thailand PromptPay and Vietnam VietQR — and their properties.
-- [Settlement](https://docs.zennopay.com/concepts/settlement.md): Settlement cadence, reconciliation reports, and statements.
-- [Per-user limits](https://docs.zennopay.com/fundamentals/limits.md): The corridor-specific regulatory limits Zennopay enforces per end user, and what enforcement looks like in the SDK.
+- [Authentication](https://docs.zennopay.in/authentication.md): The dual-layer auth model — server-to-server HMAC signing and the RS256 client session JWT, with claims, JWKS requirements, and test vectors.
+- [Funds flow](https://docs.zennopay.in/concepts/funds-flow.md): USD pre-fund → FBO custody → per-payment drawdown → local-rail payout, with failure/refund handling and per-user limits.
+- [Corridors](https://docs.zennopay.in/concepts/corridors.md): Supported corridors — Thailand PromptPay and Vietnam VietQR — and their properties.
+- [Settlement](https://docs.zennopay.in/concepts/settlement.md): Settlement cadence, reconciliation reports, and statements.
+- [Per-user limits](https://docs.zennopay.in/fundamentals/limits.md): The corridor-specific regulatory limits Zennopay enforces per end user, and what enforcement looks like in the SDK.
 
 ## API Reference
 
-- [API overview](https://docs.zennopay.com/api-reference/overview.md): REST conventions, error envelope, idempotency.
-- [Environments](https://docs.zennopay.com/api-reference/environments.md): Production and sandbox base URLs and how keys map to them.
-- [Playground](https://docs.zennopay.com/api-reference/playground.md): Interactive request builder against the sandbox.
-- [Create a payment intent](https://docs.zennopay.com/api-reference/payment-intents/create.md): `POST /v1/payment_intents` — request, response, and errors.
-- [Get a payment intent](https://docs.zennopay.com/api-reference/payment-intents/get.md): `GET /v1/payment_intents/{id}` — status lifecycle.
-- [Get receipt](https://docs.zennopay.com/api-reference/payment-intents/receipt.md): `GET /v1/payment_intents/{id}/receipt` — authoritative receipt with live status, authorized by a receipt-token bearer; cross-user 404 with no existence leak.
-- [Webhooks](https://docs.zennopay.com/api-reference/webhooks.md): Event types, payload shape, and signature verification.
-- [JWT inspector](https://docs.zennopay.com/api-reference/jwt-inspector.md): Paste a session JWT and validate its claims against the contract.
+- [API overview](https://docs.zennopay.in/api-reference/overview.md): REST conventions, error envelope, idempotency.
+- [Environments](https://docs.zennopay.in/api-reference/environments.md): Production and sandbox base URLs and how keys map to them.
+- [Playground](https://docs.zennopay.in/api-reference/playground.md): Interactive request builder against the sandbox.
+- [Create a payment intent](https://docs.zennopay.in/api-reference/payment-intents/create.md): `POST /v1/payment_intents` — request, response, and errors.
+- [Get a payment intent](https://docs.zennopay.in/api-reference/payment-intents/get.md): `GET /v1/payment_intents/{id}` — status lifecycle.
+- [Get receipt](https://docs.zennopay.in/api-reference/payment-intents/receipt.md): `GET /v1/payment_intents/{id}/receipt` — authoritative receipt with live status, authorized by a receipt-token bearer; cross-user 404 with no existence leak.
+- [Webhooks](https://docs.zennopay.in/api-reference/webhooks.md): Event types, payload shape, and signature verification.
+- [JWT inspector](https://docs.zennopay.in/api-reference/jwt-inspector.md): Paste a session JWT and validate its claims against the contract.
 
 ## Resources
 
-- [Changelog](https://docs.zennopay.com/changelog.md): Notable changes to the Zennopay public API and SDKs.
+- [Changelog](https://docs.zennopay.in/changelog.md): Notable changes to the Zennopay public API and SDKs.

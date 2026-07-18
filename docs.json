@@ -135,18 +135,18 @@
     "links": [
       {
         "label": "Contact",
-        "href": "mailto:support@zennopay.com"
+        "href": "mailto:support@zennopay.in"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.zennopay.com"
+      "label": "Console",
+      "href": "https://console.zennopay.in"
     }
   },
   "footer": {
     "socials": {
-      "website": "https://zennopay.com"
+      "website": "https://zennopay.in"
     }
   },
   "fonts": {

@@ -8,14 +8,14 @@ payment intent and hand it off to the Zennopay SDK on mobile.
 
 <Note>
   Sandbox keys and JWKS endpoint are issued manually during onboarding for v1.
-  Email **partners@zennopay.com** to receive a sandbox key ID and signing
+  Email **partners@zennopay.in** to receive a sandbox key ID and signing
   secret.
 </Note>
 
 <Info>
   **Environments.** Code below shows the production URL
-  (`https://api.zennopay.com`) for copy-paste readiness. While integrating,
-  swap in the sandbox host (`https://api.sandbox.zennopay.com`) — sandbox
+  (`https://api.zennopay.in`) for copy-paste readiness. While integrating,
+  swap in the sandbox host (`https://api.sandbox.zennopay.in`) — sandbox
   HMAC keys are rejected by production and vice versa. See
   [Environments](/api-reference/environments).
 </Info>
@@ -39,7 +39,7 @@ secret, and send it with the four required headers.
 
 <CodeGroup>
 ```bash cURL (Sandbox)
-curl -X POST https://api.sandbox.zennopay.com/v1/payment_intents \
+curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents \
   -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
   -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
@@ -49,7 +49,7 @@ curl -X POST https://api.sandbox.zennopay.com/v1/payment_intents \
 ```
 
 ```bash cURL (Production)
-curl -X POST https://api.zennopay.com/v1/payment_intents \
+curl -X POST https://api.zennopay.in/v1/payment_intents \
   -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
   -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
@@ -63,7 +63,7 @@ import crypto from "node:crypto";
 
 // Pick the host for your environment. See /api-reference/environments.
 const ZENNOPAY_HOST =
-  process.env.ZENNOPAY_HOST ?? "https://api.sandbox.zennopay.com";
+  process.env.ZENNOPAY_HOST ?? "https://api.sandbox.zennopay.in";
 
 const secret = process.env.ZENNOPAY_SECRET!; // <your_secret>
 const method = "POST";

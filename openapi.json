@@ -6,17 +6,17 @@
     "description": "Cross-border QR payment intents for Zennopay partners. All endpoints require HMAC signing on server-to-server calls; user-initiated confirm and fetch calls accept a short-lived per-session JWT (RS256, ≤10 min).",
     "contact": {
       "name": "Zennopay Support",
-      "email": "support@zennopay.com",
-      "url": "https://zennopay.com"
+      "email": "support@zennopay.in",
+      "url": "https://zennopay.in"
     }
   },
   "servers": [
     {
-      "url": "https://api.zennopay.com",
+      "url": "https://api.zennopay.in",
       "description": "Production — live partner traffic, real money. See /api-reference/environments."
     },
     {
-      "url": "https://api.sandbox.zennopay.com",
+      "url": "https://api.sandbox.zennopay.in",
       "description": "Sandbox — integration, QA, demos. Sandbox HMAC keys only."
     }
   ],

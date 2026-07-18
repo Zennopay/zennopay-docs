@@ -79,10 +79,10 @@ one integration serves testing and production:
 
 ```swift
 // Sandbox/testing (the default). Shows a "SANDBOX" pill in the sheet header.
-config: .staging          // https://api.staging.zennopay.com
+config: .staging          // https://api.staging.zennopay.in
 
 // Live traffic. Real money, no sandbox chrome.
-config: .production       // https://api.zennopay.com
+config: .production       // https://api.zennopay.in
 
 // Custom gateway (local development, pentest):
 config: ZennopayConfig(apiBaseURL: URL(string: "http://localhost:3000")!)

@@ -10,7 +10,7 @@ is callable here — request bodies are validated client-side against the
 schema before they're sent.
 
 <Note>
-  The playground talks to `https://api.sandbox.zennopay.com`. Use a
+  The playground talks to `https://api.sandbox.zennopay.in`. Use a
   **sandbox** HMAC key (`{partner}_sandbox_*`) — production keys are
   rejected by the sandbox host.
 </Note>
@@ -53,7 +53,7 @@ endpoints by tag:
        bytes* of the request body. Don't pretty-print or re-serialize
        between signing and sending.
     3. **Source IP not allowlisted.** The sandbox allowlist is configured
-       per partner in the dashboard.
+       per partner in the console.
   </Accordion>
   <Accordion title="My JWT returns 401">
     Decode the JWT with the [JWT inspector](/api-reference/jwt-inspector)
@@ -64,7 +64,7 @@ endpoints by tag:
     - `zennopay:intent_id` matches the path parameter you're calling
     - `zennopay:amount_usd_cents` and `zennopay:corridor` match the
       intent's persisted values
-    - `iss` is registered in the dashboard and its JWKS is reachable
+    - `iss` is registered in the console and its JWKS is reachable
   </Accordion>
   <Accordion title="My nonce keeps getting rejected">
     Each `X-Zennopay-Nonce` is single-use within a 10-minute window.

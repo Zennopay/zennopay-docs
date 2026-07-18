@@ -14,8 +14,8 @@ a short-lived per-session token on the client side.
 
 ## Server-to-server HMAC
 
-Every request to the Zennopay REST API (`https://api.zennopay.com/v1/*` in
-production, `https://api.sandbox.zennopay.com/v1/*` in sandbox — see
+Every request to the Zennopay REST API (`https://api.zennopay.in/v1/*` in
+production, `https://api.sandbox.zennopay.in/v1/*` in sandbox — see
 [Environments](/api-reference/environments)) from your backend MUST be signed
 with HMAC-SHA256 and accompanied by four headers, and must originate from an
 allowlisted source IP.
@@ -209,7 +209,7 @@ reasons. Use the `request_id` to correlate with internal logs when escalating.
 
 For each user payment, your backend mints a JWT identifying that specific
 user and that specific intent. The JWT travels from your backend → your
-mobile app → the Zennopay SDK → `checkout.zennopay.com`.
+mobile app → the Zennopay SDK → `checkout.zennopay.in`.
 
 ### Algorithm — RS256
 
@@ -317,7 +317,7 @@ Any failure rejects the session:
 The SDK passes the JWT to checkout web via the URL hash fragment:
 
 ```
-https://checkout.zennopay.com/flow/zp_AbCd1234/scan#token={jwt}
+https://checkout.zennopay.in/flow/zp_AbCd1234/scan#token={jwt}
 ```
 
 The hash fragment is **never** sent to the server in HTTP requests (per the
@@ -340,7 +340,7 @@ User taps "Pay" in partner app
     |
     v
 Partner backend creates intent:
-    POST https://api.zennopay.com/v1/payment_intents  (HMAC-signed)
+    POST https://api.zennopay.in/v1/payment_intents  (HMAC-signed)
     -> { "intent_id": "zp_AbCd1234", ... }
     |
     v
@@ -357,7 +357,7 @@ Partner app calls SDK:
     Zennopay.openCheckout(intentID, jwt, returnScheme)
     |
     v
-SDK opens https://checkout.zennopay.com/flow/zp_AbCd1234/scan#token=eyJ...
+SDK opens https://checkout.zennopay.in/flow/zp_AbCd1234/scan#token=eyJ...
     |
     v
 Checkout web:
