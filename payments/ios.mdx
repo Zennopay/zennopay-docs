@@ -43,7 +43,7 @@ your app target. Or, in your own `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Zennopay/zennopay-ios-sdk", from: "0.2.1")
+    .package(url: "https://github.com/Zennopay/zennopay-ios-sdk", from: "0.6.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: ["Zennopay"])
@@ -53,7 +53,7 @@ targets: [
 Or with **CocoaPods** — add to your `Podfile` and run `pod install`:
 
 ```ruby
-pod 'Zennopay', '~> 0.2.1'
+pod 'Zennopay', '~> 0.6.0'
 ```
 
 ### Declare camera usage
@@ -79,7 +79,7 @@ one integration serves testing and production:
 
 ```swift
 // Sandbox/testing (the default). Shows a "SANDBOX" pill in the sheet header.
-config: .staging          // https://api.staging.zennopay.in
+config: .sandbox          // https://api.sandbox.zennopay.in
 
 // Live traffic. Real money, no sandbox chrome.
 config: .production       // https://api.zennopay.in
@@ -129,7 +129,7 @@ final class WalletViewController: UIViewController {
                         "/wallet/checkout-session/\(intentID)/refresh")
                     return refreshed?.sessionJwt
                 },
-                config: .staging   // .production for live traffic
+                config: .sandbox   // .production for live traffic
             ) { result in
                 // 3. Delivered exactly once, on the main queue.
                 switch result {
@@ -222,7 +222,7 @@ the **paste-QR** fallback automatically — paste any VietQR/EMVCo payload strin
 and the flow proceeds identically (the backend does the authoritative parse
 either way). Two useful loops:
 
-1. **Staging end-to-end:** run against `.staging` with a session from your
+1. **Sandbox end-to-end:** run against `.sandbox` with a session from your
    sandbox backend and a real VietQR payload; the payout runs on the sandbox
    rail and the intent reaches `captured`.
 2. **Fail-fast checks:** pass an empty or mismatched JWT and assert you get an

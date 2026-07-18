@@ -177,7 +177,7 @@ polled.
                     let refreshed: ReceiptToken? = try? await api.post("/receipt-token")
                     return refreshed?.receiptToken
                 },
-                config: .production,     // .staging in sandbox
+                config: .production,     // .sandbox for testing
                 appearance: appearance,  // optional — same theming as the PaymentSheet
                 onDismiss: {
                     // The user closed the receipt. Refresh your list row if you like.
@@ -206,7 +206,7 @@ polled.
                     runCatching { api.post<ReceiptToken>("/receipt-token").receiptToken }
                         .getOrNull()
                 },
-                config = ZennopayConfig.Production,   // .Staging in sandbox
+                config = ZennopayConfig.PRODUCTION,   // .SANDBOX for testing
                 appearance = appearance,              // optional theming
                 onDismiss = { /* user closed the receipt */ },
             )

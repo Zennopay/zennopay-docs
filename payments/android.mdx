@@ -36,7 +36,7 @@ CameraX + ML Kit, on-device.
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("in.zennopay:sdk:0.2.1")
+    implementation("in.zennopay:sdk:0.6.0")
 }
 ```
 
@@ -62,7 +62,7 @@ manifest — just declare camera use in your Play Store listing.
 The environment is a value, not a code path:
 
 ```kotlin
-ZennopayConfig.STAGING      // https://api.staging.zennopay.in — SANDBOX pill shown (default)
+ZennopayConfig.SANDBOX      // https://api.sandbox.zennopay.in — SANDBOX pill shown (default)
 ZennopayConfig.PRODUCTION   // https://api.zennopay.in — real money, no sandbox chrome
 
 // Custom gateway (local dev, pentest):
@@ -101,7 +101,7 @@ import com.zennopay.sdk.rememberZennopayLauncher
 @Composable
 fun PayButton(session: CheckoutSession, viewModel: WalletViewModel) {
     val present = rememberZennopayLauncher(
-        config = ZennopayConfig.STAGING,        // .PRODUCTION for live traffic
+        config = ZennopayConfig.SANDBOX,        // .PRODUCTION for live traffic
         refreshSession = { intentId ->
             // Called on session expiry (401): re-mint for the SAME intent,
             // or return null if you can't.
@@ -139,7 +139,7 @@ class WalletActivity : ComponentActivity() {
             intentId = intentId,
             sessionJwt = sessionJwt,
             refreshSession = { id -> walletApi.remintSessionJwt(id) },
-            config = ZennopayConfig.STAGING,
+            config = ZennopayConfig.SANDBOX,
         ) { result ->
             when (result) {
                 is PaymentResult.Completed -> showReceipt(result)
@@ -234,7 +234,7 @@ Zennopay look, following system light/dark.
   use the sheet's **paste-QR** fallback (or the emulator's virtual-scene camera
   image) with any VietQR payload string. The backend does the authoritative
   parse either way.
-- **Staging end-to-end:** run `ZennopayConfig.STAGING` with a session from your
+- **Sandbox end-to-end:** run `ZennopayConfig.SANDBOX` with a session from your
   sandbox backend; the payout runs on the sandbox rail and the intent reaches
   `captured`.
 - **Fail-fast checks:** pass a blank or mismatched JWT and assert an immediate

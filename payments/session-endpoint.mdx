@@ -103,7 +103,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import express from "express";
 
-const ZENNOPAY_BASE = "https://api.staging.zennopay.in"; // api.zennopay.in in prod
+const ZENNOPAY_BASE = "https://api.sandbox.zennopay.in"; // api.zennopay.in in prod
 const KEY_ID = process.env.ZENNOPAY_KEY_ID!;              // e.g. "acme_key_001"
 const SECRET_KEY = process.env.ZENNOPAY_SECRET_KEY!;      // sk_test_... — server only
 const JWT_ISS = "https://api.your-domain.com";            // your registered issuer

@@ -26,7 +26,7 @@ app never leaves the foreground.
 ```yaml
 # pubspec.yaml
 dependencies:
-  zennopay_flutter: ^0.3.0
+  zennopay_flutter: ^0.6.0
 ```
 
 ### Platform setup
@@ -49,7 +49,7 @@ both platforms.
 The environment is a config value, not a code path:
 
 ```dart
-ZennopayConfig.staging      // https://api.staging.zennopay.in — SANDBOX pill (default)
+ZennopayConfig.sandbox      // https://api.sandbox.zennopay.in — SANDBOX pill (default)
 ZennopayConfig.production   // https://api.zennopay.in — real money
 
 // Custom gateway (local dev):
@@ -83,7 +83,7 @@ Future<void> scanAndPay(BuildContext context) async {
       final refreshed = await walletApi.refreshSession(intentId);
       return refreshed?.sessionJwt;
     },
-    config: ZennopayConfig.staging, // ZennopayConfig.production for live
+    config: ZennopayConfig.sandbox, // ZennopayConfig.production for live
   );
 
   // 3. One terminal case, exhaustively.
@@ -188,7 +188,7 @@ await Zennopay.presentSheet(
 
 - **Simulator/emulator:** no usable camera — use the sheet's paste-QR fallback
   with any VietQR payload string; the backend does the authoritative parse.
-- **Staging end-to-end:** `ZennopayConfig.staging` + a session from your
+- **Sandbox end-to-end:** `ZennopayConfig.sandbox` + a session from your
   sandbox backend drives the flow to a real `captured` on the sandbox payout
   rail.
 - **Fail-fast checks:** a blank or mismatched JWT resolves immediately with

@@ -14,10 +14,10 @@ testing and production:
 
 | Platform | Sandbox | Production |
 |---|---|---|
-| [iOS](/payments/ios) | `config: .staging` | `config: .production` |
-| [Android](/payments/android) | `ZennopayConfig.STAGING` | `ZennopayConfig.PRODUCTION` |
-| [Flutter](/payments/flutter) | `ZennopayConfig.staging` | `ZennopayConfig.production` |
-| [React Native](/payments/react-native) | `{ environment: 'staging' }` | `{ environment: 'production' }` |
+| [iOS](/payments/ios) | `config: .sandbox` | `config: .production` |
+| [Android](/payments/android) | `ZennopayConfig.SANDBOX` | `ZennopayConfig.PRODUCTION` |
+| [Flutter](/payments/flutter) | `ZennopayConfig.sandbox` | `ZennopayConfig.production` |
+| [React Native](/payments/react-native) | `{ environment: 'sandbox' }` | `{ environment: 'production' }` |
 
 In the sandbox the sheet shows a **SANDBOX** pill in its header, so a build
 pointed at the wrong environment is visible at a glance. Your backend must

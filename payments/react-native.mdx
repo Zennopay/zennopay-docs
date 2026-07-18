@@ -72,7 +72,7 @@ Rebuild the app after installing (`npx react-native run-ios` /
 await presentSheet({
   intentId,
   sessionJwt,
-  config: { environment: 'staging' },          // SANDBOX pill shown
+  config: { environment: 'sandbox' },          // SANDBOX pill shown
   // config: { apiBaseUrl: 'http://localhost:3000' },  // custom gateway
 });
 ```
@@ -92,7 +92,7 @@ import { ZennopayProvider, useZennopay } from '@zennopay/react-native';
 // Root:
 export default function App() {
   return (
-    <ZennopayProvider config={{ environment: 'staging' }}>
+    <ZennopayProvider config={{ environment: 'sandbox' }}>
       <Wallet />
     </ZennopayProvider>
   );
@@ -143,7 +143,7 @@ There is also an imperative import if you don't want the provider:
 ```ts
 import { presentSheet } from '@zennopay/react-native';
 
-const result = await presentSheet({ intentId, sessionJwt, config: { environment: 'staging' } });
+const result = await presentSheet({ intentId, sessionJwt, config: { environment: 'sandbox' } });
 ```
 
 ## Handle the result
@@ -209,7 +209,7 @@ natively and can't be overridden.
 
 - **Simulator/emulator:** no usable camera — the native sheet falls back to
   paste-QR; paste any VietQR payload string.
-- **Staging end-to-end:** `{ environment: 'staging' }` + a session from your
+- **Sandbox end-to-end:** `{ environment: 'sandbox' }` + a session from your
   sandbox backend drives the flow to a real `captured` on the sandbox payout
   rail.
 - **Link check:** if `presentSheet` rejects with `native_sdk_unavailable`,
