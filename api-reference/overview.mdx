@@ -36,7 +36,10 @@ scoping rules, and the path from sandbox to production.
 
 <CardGroup cols={2}>
   <Card title="Create payment intent" icon="plus" href="/api-reference/payment-intents/create">
-    `POST /v1/payment_intents`
+    `POST /v1/payment_intents` — returns the session token
+  </Card>
+  <Card title="Re-mint session token" icon="rotate" href="/api-reference/payment-intents/session">
+    `POST /v1/payment_intents/{intent_id}/session`
   </Card>
   <Card title="Get payment intent" icon="magnifying-glass" href="/api-reference/payment-intents/get">
     `GET /v1/payment_intents/{intent_id}`

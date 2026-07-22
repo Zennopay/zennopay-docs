@@ -46,14 +46,15 @@ access, so the flow is always completable.
     `payment_intent.captured`.
   </Step>
   <Step title="Fail-fast token checks">
-    Pass a blank or mismatched session JWT and assert an immediate `failed`
+    Pass a blank or mismatched session token and assert an immediate `failed`
     with `invalid_jwt` / `intent_mismatch` — the SDK validates the token's
     structure, expiry, and intent binding before showing any UI.
   </Step>
   <Step title="Session expiry mid-flow">
-    Mint a session with a short `exp` and let it lapse inside the sheet; your
-    `refreshSession` hook should re-mint for the same intent and the flow
-    should continue without the user noticing.
+    Let a session token lapse inside the sheet (its `session_expires_at` passes);
+    your `refreshSession` hook should re-mint for the same intent via
+    `POST /v1/payment_intents/:id/session` and the flow should continue without
+    the user noticing.
   </Step>
   <Step title="A limit-blocked payment">
     [Per-user corridor limits](/fundamentals/limits) are enforced against the
@@ -87,7 +88,7 @@ pre-release checklist on every platform guide.
   <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
     The corridor limits enforced in both environments.
   </Card>
-  <Card title="JWT inspector" icon="magnifying-glass" href="/api-reference/jwt-inspector">
-    Paste a session JWT and validate its claims.
+  <Card title="Authentication" icon="key" href="/authentication">
+    The HMAC signing spec and the session-token contract.
   </Card>
 </CardGroup>

@@ -1,16 +1,27 @@
 ---
 title: "Authentication"
-description: "Two layers — HMAC for server-to-server, JWT for per-user sessions."
+description: "One credential for partners — an HMAC signing secret. Zennopay mints the client session token for you."
 ---
 
-Zennopay uses two distinct auth layers in parallel — the dual-token pattern
-common to modern payment APIs: a long-lived shared secret on the server side,
-a short-lived per-session token on the client side.
+Zennopay's default integration (**Model B**) gives you a single credential to
+manage: an **HMAC signing secret**. Your backend signs every REST call with it.
+When you create a payment intent, Zennopay mints a short-lived **session token**
+and returns it to you — you never generate, sign, publish, or register a key
+pair.
 
-| Layer | Used between | Algorithm | Lifetime |
+| Layer | Used between | Algorithm | Who holds it |
 |---|---|---|---|
-| **HMAC** | Partner backend ↔ Zennopay REST API | HMAC-SHA256 | Long-lived (rotated quarterly) |
-| **Session JWT** | Partner backend → SDK → Zennopay checkout | RS256 | ≤ 10 minutes, one-time-use |
+| **HMAC** | Partner backend ↔ Zennopay REST API | HMAC-SHA256 | Your server (rotated quarterly) |
+| **Session token** | Partner app → SDK → Zennopay checkout | Zennopay-minted, opaque to you | Your app, in memory, short-lived |
+
+<Note>
+  **No key pair required.** In Model B there is no RS256 keypair to generate, no
+  `iss`/`kid` to register, no JWKS endpoint to publish, and no session JWT for
+  you to sign. Zennopay issues the session token. If you have a hard requirement
+  to self-sign your own session tokens, see
+  [Advanced: bring-your-own signing key (Model A)](/advanced/self-signed-sessions) —
+  it is strictly optional and secondary.
+</Note>
 
 ## Server-to-server HMAC
 
@@ -28,13 +39,13 @@ allowlisted source IP.
 </ParamField>
 
 <ParamField header="X-Zennopay-Timestamp" type="string" required>
-  RFC 3339 UTC datetime, e.g. `2026-05-21T14:30:00Z`. Requests more than 5
-  minutes off server time are rejected.
+  ISO-8601 / RFC 3339 UTC datetime, e.g. `2026-05-21T14:30:00Z`. Requests more
+  than 5 minutes off server time are rejected.
 </ParamField>
 
 <ParamField header="X-Zennopay-Nonce" type="string" required>
-  Random 32-byte hex string. Used to reject duplicate-nonce replays within a
-  10-minute window.
+  Random 32-byte hex string (64 chars). Used to reject duplicate-nonce replays
+  within a 10-minute window.
 </ParamField>
 
 <ParamField header="X-Zennopay-Signature" type="string" required>
@@ -44,7 +55,8 @@ allowlisted source IP.
 ### Canonical request
 
 The string you sign is constructed by joining these five components with a
-single newline (`\n`) between each:
+single newline (`\n`) between each, **including a trailing newline** after the
+body hash:
 
 ```
 {HTTP_METHOD}\n
@@ -55,7 +67,7 @@ single newline (`\n`) between each:
 ```
 
 For `POST /v1/payment_intents` at `2026-05-21T14:30:00Z` with nonce
-`a1b2c3d4e5f6...` and body `{"amount_usd":3.45}`, the canonical request is:
+`a1b2c3d4e5f6...` and a JSON body, the canonical request is:
 
 ```text
 POST
@@ -100,15 +112,15 @@ function signRequest({ method, path, body, secret, keyId }: {
   method: string;
   path: string;
   body: string; // exact JSON bytes you will send
-  secret: string; // your signing secret — <your_secret>
+  secret: string; // your HMAC signing secret — <your_secret>
   keyId: string;
 }) {
   const timestamp = new Date().toISOString();
-  const nonce = crypto.randomBytes(16).toString("hex");
+  const nonce = crypto.randomBytes(32).toString("hex"); // 64 hex chars
   const bodyHash = body
     ? crypto.createHash("sha256").update(body).digest("hex")
     : "";
-  const canonical = [method, path, timestamp, nonce, bodyHash].join("\n");
+  const canonical = [method, path, timestamp, nonce, bodyHash].join("\n") + "\n";
   const signature = crypto
     .createHmac("sha256", secret)
     .update(canonical)
@@ -128,9 +140,9 @@ from datetime import datetime, timezone
 
 def sign_request(method: str, path: str, body: bytes, secret: str, key_id: str):
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    nonce = secrets.token_hex(16)
+    nonce = secrets.token_hex(32)  # 64 hex chars
     body_hash = hashlib.sha256(body).hexdigest() if body else ""
-    canonical = "\n".join([method, path, timestamp, nonce, body_hash])
+    canonical = "\n".join([method, path, timestamp, nonce, body_hash]) + "\n"
     signature = base64.b64encode(
         hmac.new(secret.encode(), canonical.encode(), hashlib.sha256).digest()
     ).decode()
@@ -166,8 +178,8 @@ Use these to validate your client implementation before sending real traffic.
 | Method | `POST` |
 | Path | `/v1/payment_intents` |
 | Timestamp | `2026-05-21T14:30:00Z` |
-| Nonce | `a1b2c3d4e5f6789012345678abcdef00` |
-| Body | `{"amount_usd":3.45,"corridor":"th_promptpay"}` |
+| Nonce | `a1b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef00` |
+| Body | `{"amount_usd_cents":345,"corridor":"th_promptpay"}` |
 
 Expected canonical request:
 
@@ -175,7 +187,7 @@ Expected canonical request:
 POST
 /v1/payment_intents
 2026-05-21T14:30:00Z
-a1b2c3d4e5f6789012345678abcdef00
+a1b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef00
 {SHA256_HEX_OF_BODY}
 ```
 
@@ -205,186 +217,136 @@ reasons. Use the `request_id` to correlate with internal logs when escalating.
 }
 ```
 
-## Client session JWT
+## Client session token
 
-For each user payment, your backend mints a JWT identifying that specific
-user and that specific intent. The JWT travels from your backend → your
-mobile app → the Zennopay SDK → `checkout.zennopay.in`.
+Your app never holds your HMAC secret. Per payment, it holds a **session token**
+— a short-lived credential scoped to a single intent — which it passes to the
+Zennopay SDK.
 
-### Algorithm — RS256
+In Model B you don't mint this token: **Zennopay does**. When your backend
+creates the payment intent, the response includes:
 
-JWTs are signed with **RS256 (asymmetric)**. You sign with your RSA private
-key; Zennopay verifies with your public key, fetched from your JWKS endpoint.
+| Field | Meaning |
+|---|---|
+| `session_token` | The credential the SDK sends as `Authorization: Bearer` on `scan` / `confirm` / status calls. Opaque to you — treat it as a bearer secret. |
+| `session_expires_at` | Unix epoch **seconds** at which the token stops verifying. Typically a few minutes out. |
 
-Rationale: asymmetric means Zennopay never holds your signing key. You can
-rotate keys independently, and Zennopay can discover new keys automatically
-by refreshing your JWKS.
+The token is single-intent, short-lived, and single-use for the confirming
+debit. It is verified by Zennopay on every SDK call.
 
-<Warning>
-  HS256 (symmetric) is **not** accepted. Sharing a JWT signing secret would
-  conflate browser-visible trust with server-side trust.
-</Warning>
+### Getting a session token
 
-### Required claims
-
-All JWTs MUST include these claims. Missing any field = rejected.
-
-| Claim | Type | Description |
-|---|---|---|
-| `iss` | string | Issuer URL, e.g. `https://api.your-domain.com`. Must match your registered JWKS URL. |
-| `aud` | string | Must be `"zennopay-checkout"`. |
-| `sub` | string | Your internal user ID (opaque to Zennopay). |
-| `iat` | integer | Issued-at, Unix epoch seconds. |
-| `exp` | integer | Expiry. Must be ≤ `iat + 600` (10-minute max session). |
-| `jti` | string | Unique JWT ID. UUID v7 recommended. Enforced one-time-use. |
-| `nbf` | integer | Not-before. Optional. |
-| `zennopay:intent_id` | string | Zennopay intent ID this JWT authorizes. Format `zp_...`. |
-| `zennopay:amount_usd_cents` | integer | Authorized amount in USD cents. |
-| `zennopay:corridor` | string | `"th_promptpay"` or `"vn_vietqr"`. Locks the route at issuance. |
-| `zennopay:kyc_attestation` | object | `{ "verified": true, "method": "...", "verified_at": "..." }` |
-| `zennopay:sanctions_attestation` | object | `{ "clean": true, "screened_at": "..." }` |
-
-Zennopay-specific claims live under the `zennopay:` prefix to avoid
-collision with future standard claims.
-
-### Example JWT payload
+Create the intent with a normal HMAC-signed call. The
+[create response](/api-reference/payment-intents/create) carries the token:
 
 ```json
 {
-  "iss": "https://api.your-domain.com",
-  "aud": "zennopay-checkout",
-  "sub": "your_user_xyz123",
-  "iat": 1716305400,
-  "exp": 1716305700,
-  "jti": "0190a8b3-4c5d-7e6f-8a9b-c0d1e2f3a4b5",
-  "zennopay:intent_id": "zp_AbCd1234EfGh5678",
-  "zennopay:amount_usd_cents": 345,
-  "zennopay:corridor": "th_promptpay",
-  "zennopay:kyc_attestation": {
+  "intent_id": "zp_AbCd1234EfGh5678",
+  "status": "created",
+  "amount_usd_cents": 345,
+  "corridor": "th_promptpay",
+  "session_token": "zpst_9b1f…",
+  "session_expires_at": 1716305700,
+  "created_at": "2026-05-21T14:30:00Z"
+}
+```
+
+Return `session_token` (and, if you like, `session_expires_at`) to your app,
+which hands it to the [PaymentSheet](/payments/overview).
+
+### Re-minting a session token
+
+If the session expires mid-flow, don't create a new intent — re-mint a token
+for the **same** intent:
+
+```
+POST /v1/payment_intents/{intent_id}/session   (HMAC-signed)
+```
+
+The response is a fresh `session_token` + `session_expires_at`. Zennopay
+preserves the intent's scan / quote / confirm state across the re-mint. This is
+exactly what the SDK's `refreshSession` hook calls your backend to do.
+
+### Attestations move to intent creation
+
+Because Zennopay mints the token, the per-payment compliance attestations you
+own — **KYC** and **sanctions** — travel in the HMAC-signed
+[create-intent body](/api-reference/payment-intents/create), not in a token you
+sign:
+
+```json
+{
+  "partner_user_id": "usr_8f3ka92m",
+  "amount_usd_cents": 345,
+  "corridor": "vn_vietqr",
+  "kyc_attestation": {
     "verified": true,
     "method": "your_kyc_v2",
-    "verified_at": "2026-05-21T13:30:00Z"
+    "verified_at": "2026-05-21T13:30:00Z",
+    "id_type": "passport",
+    "id_country": "IN"
   },
-  "zennopay:sanctions_attestation": {
+  "sanctions_attestation": {
     "clean": true,
     "screened_at": "2026-05-21T14:25:00Z"
   }
 }
 ```
 
-### JWKS endpoint requirements
-
-Publish your JWKS at the standard well-known path:
-
-```
-https://{your-domain}/.well-known/jwks.json
-```
-
-The response must include at least one active signing key with:
-
-- `use: "sig"`
-- `kty: "RSA"`
-- `alg: "RS256"`
-- `kid` matching the JWT header's `kid` claim
-- Modulus `n` and exponent `e` (standard RSA public-key encoding)
-
-During key rotation, publish both old and new keys for 14 days. Zennopay
-caches your JWKS for up to 10 minutes; on a JWT with an unknown `kid`,
-Zennopay invalidates the cache and refetches once before rejecting.
-
-### Verification order
-
-Zennopay's checkout web AND backend both verify each JWT in this order.
-Any failure rejects the session:
-
-1. JWT is a well-formed signed JWS (three segments).
-2. Fetch the JWKS for the `iss` value; pick the key matching the JWT header's `kid`.
-3. Verify the signature with the RSA public key.
-4. `aud` equals `"zennopay-checkout"`.
-5. `iss` matches the partner registered for the intent in the JWT.
-6. `exp` is in the future. `nbf` (if present) is in the past. `iat` is not
-   more than 15 minutes in the past.
-7. `exp - iat ≤ 600` (10-minute session cap).
-8. `jti` has not been consumed. On success it's stored for the remaining
-   token lifetime — one-time use.
-9. `intent_id` exists in Zennopay's database and is in state `created` or
-   `authorized` (not `captured`, `failed`, or `expired`).
-10. `amount_usd_cents` matches the stored intent's amount.
-11. `corridor` matches the stored intent's corridor.
-
-### Hash-fragment transport
-
-The SDK passes the JWT to checkout web via the URL hash fragment:
-
-```
-https://checkout.zennopay.in/flow/zp_AbCd1234/scan#token={jwt}
-```
-
-The hash fragment is **never** sent to the server in HTTP requests (per the
-URL spec). This means:
-
-- No proxy or CDN logs the JWT.
-- No `Referer` header leaks it.
-- Zennopay's access logs do not contain it.
-
-Checkout web parses the JWT from `window.location.hash`, validates it, then
-strips the hash via `history.replaceState` so the JWT does not sit in browser
-history.
+<Note>
+  **Why attestations are per-payment.** You own KYC and sanctions screening for
+  your users; Zennopay owns them for merchants. Sending the attestation with the
+  signed create call makes the compliance handoff explicit, per-payment, and
+  auditable — Zennopay will not move money on an intent that doesn't carry them.
+  `id_type` / `id_country` declare which government ID your KYC bound this user
+  to; the raw ID number itself never crosses.
+</Note>
 
 ## End-to-end flow
-
-Both layers operate together in a real payment:
 
 ```text
 User taps "Pay" in partner app
     |
     v
-Partner backend creates intent:
-    POST https://api.zennopay.in/v1/payment_intents  (HMAC-signed)
-    -> { "intent_id": "zp_AbCd1234", ... }
+Partner backend creates intent (HMAC-signed):
+    POST https://api.zennopay.in/v1/payment_intents
+    body: { partner_user_id, amount_usd_cents, corridor,
+            kyc_attestation, sanctions_attestation }
+    header: Idempotency-Key
+    -> { "intent_id": "zp_AbCd1234", "session_token": "zpst_…",
+         "session_expires_at": 1716305700, ... }
     |
     v
-Partner backend mints session JWT (RS256):
-    Header: { "kid": "your_prod_2026q2", "alg": "RS256" }
-    Claims: aud=zennopay-checkout, exp=now+10min,
-            zennopay:intent_id=zp_AbCd1234, ...
-    |
-    v
-Partner backend returns to app: { intent_id, jwt }
+Partner backend returns to app: { intent_id, session_token }
     |
     v
 Partner app calls SDK:
-    Zennopay.openCheckout(intentID, jwt, returnScheme)
+    Zennopay.presentCheckout(intentID, sessionToken)
     |
     v
-SDK opens https://checkout.zennopay.in/flow/zp_AbCd1234/scan#token=eyJ...
+SDK talks to Zennopay directly with session_token as Authorization: Bearer:
+    1. User scans QR   -> POST /v1/payment_intents/:id/scan
+    2. Amount + FX quote
+    3. Slide to pay     -> POST /v1/payment_intents/:id/confirm (Idempotency-Key)
+    (On 401 mid-flow, the SDK's refreshSession hook asks your backend to
+     re-mint via POST /v1/payment_intents/:id/session.)
     |
     v
-Checkout web:
-    1. Parse JWT from hash, strip the hash
-    2. Fetch partner JWKS (10-min cached)
-    3. Verify JWT (all 11 checks above)
-    4. User scans QR, confirms, slides to pay
-    5. POST /v1/payment_intents/zp_AbCd1234/confirm
-       Authorization: Bearer <the JWT>
-       (Backend verifies the JWT again — defense in depth — and enforces
-        one-time-use on jti)
+Zennopay executes payment: debit float, call payout partner, settle
     |
     v
-Backend executes payment: debit FBO, call provider, settle
+SDK returns one typed PaymentResult to your app
     |
     v
-Checkout web redirects: yourapp://payment-result?intent_id=zp_AbCd1234&status=success
-    |
-    v
-SDK returns control to partner app with PaymentResult
+Zennopay POSTs a signed webhook with the terminal status
 ```
 
 ## What's out of scope for v1
 
-- **Refresh tokens.** JWTs are one-shot. If the session expires, mint a new one.
-- **Sandbox audience scoping.** v1.1 will add `aud: zennopay-checkout-test`
-  for sandbox environments. For v1, sandbox uses the same `aud` value with
-  sandbox-side JWKS routing.
-- **Signed session cookies on checkout.** The JWT-in-hash is sufficient for
-  the current single-page flow.
+- **Refresh of the HMAC secret without a rotation window.** Rotation is the
+  quarterly, dual-key process above.
+- **Client-held API keys.** The mobile app never holds your HMAC secret; it only
+  ever holds a Zennopay-minted session token scoped to one intent.
+- **Partner-signed session tokens by default.** If you specifically need to
+  self-sign, that's [Model A](/advanced/self-signed-sessions) — optional and
+  secondary.

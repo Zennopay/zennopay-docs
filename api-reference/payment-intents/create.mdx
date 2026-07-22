@@ -1,7 +1,7 @@
 ---
 title: "Create payment intent"
 api: "POST /v1/payment_intents"
-description: "Create a new Zennopay payment intent for a single user payment."
+description: "Create a payment intent and receive the Zennopay-minted session token for the SDK."
 ---
 
 ## Headers
@@ -13,18 +13,28 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
 </ParamField>
 
 <ParamField header="X-Zennopay-Timestamp" type="string" required>
-  RFC 3339 UTC timestamp. Requests more than 5 minutes off server time are rejected.
+  ISO-8601 / RFC 3339 UTC timestamp. Requests more than 5 minutes off server time are rejected.
 </ParamField>
 
 <ParamField header="X-Zennopay-Nonce" type="string" required>
-  Random 32-byte hex string. Replays within 10 minutes are rejected.
+  Random 32-byte hex string (64 chars). Replays within 10 minutes are rejected.
 </ParamField>
 
 <ParamField header="X-Zennopay-Signature" type="string" required>
   Base64 HMAC-SHA256 of the canonical request string.
 </ParamField>
 
+<ParamField header="Idempotency-Key" type="string">
+  Recommended. A UUID so a network retry can't create two intents. Replaying the
+  same key returns the original response (and its original `session_token`).
+</ParamField>
+
 ## Body
+
+<ParamField body="partner_user_id" type="string" required>
+  Your opaque, stable user identifier. Never a raw government ID. Per-user
+  regulatory limits are enforced against this value.
+</ParamField>
 
 <ParamField body="amount_usd_cents" type="integer" required>
   The amount the user has authorized, in USD cents. Minimum is corridor-dependent.
@@ -34,10 +44,24 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
   One of `th_promptpay` (Thailand PromptPay) or `vn_vietqr` (Vietnam VietQR).
 </ParamField>
 
-<ParamField body="partner_user_id" type="string" required>
-  Your opaque user identifier. Zennopay never sees the underlying user PII;
-  this is for your internal correlation.
+<ParamField body="kyc_attestation" type="object" required>
+  Your per-payment KYC attestation, from your real KYC system:
+  `{ verified, method, verified_at, id_type, id_country }`. `id_type` /
+  `id_country` declare which government ID the user was KYC'd on; the raw ID
+  number never crosses.
 </ParamField>
+
+<ParamField body="sanctions_attestation" type="object" required>
+  Your per-payment sanctions attestation, from your real screening system:
+  `{ clean, screened_at }`.
+</ParamField>
+
+<Note>
+  In the default flow (**Model B**) the attestations travel in this body and
+  Zennopay mints the session token. If you self-sign your own tokens
+  ([Model A](/advanced/self-signed-sessions)), the attestations live in the JWT
+  claims instead and are omitted here.
+</Note>
 
 ## Response
 
@@ -58,6 +82,17 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
   Echoes the request.
 </ResponseField>
 
+<ResponseField name="session_token" type="string">
+  The Zennopay-minted session token for this intent. Return it to your app; the
+  SDK sends it as `Authorization: Bearer` on scan/confirm/status. Opaque —
+  treat it as a bearer secret and don't parse it.
+</ResponseField>
+
+<ResponseField name="session_expires_at" type="integer">
+  Unix epoch **seconds** at which `session_token` stops verifying. Re-mint for
+  the same intent with [`POST /v1/payment_intents/{intent_id}/session`](/api-reference/payment-intents/session).
+</ResponseField>
+
 <ResponseField name="created_at" type="string">
   RFC 3339 UTC timestamp.
 </ResponseField>
@@ -72,13 +107,16 @@ production. See [Environments](/api-reference/environments).
 curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents \
   -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
-  -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
+  -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef00" \
   -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
+  -H "Idempotency-Key: 6f1c2b3a-..." \
   -H "Content-Type: application/json" \
   -d '{
+    "partner_user_id": "usr_8f3ka92m",
     "amount_usd_cents": 345,
     "corridor": "th_promptpay",
-    "partner_user_id": "user_abc123"
+    "kyc_attestation": { "verified": true, "method": "your_kyc_v2", "verified_at": "2026-05-21T13:30:00Z", "id_type": "passport", "id_country": "IN" },
+    "sanctions_attestation": { "clean": true, "screened_at": "2026-05-21T14:25:00Z" }
   }'
 ```
 
@@ -86,13 +124,16 @@ curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents \
 curl -X POST https://api.zennopay.in/v1/payment_intents \
   -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
-  -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
+  -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef00" \
   -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
+  -H "Idempotency-Key: 6f1c2b3a-..." \
   -H "Content-Type: application/json" \
   -d '{
+    "partner_user_id": "usr_8f3ka92m",
     "amount_usd_cents": 345,
     "corridor": "th_promptpay",
-    "partner_user_id": "user_abc123"
+    "kyc_attestation": { "verified": true, "method": "your_kyc_v2", "verified_at": "2026-05-21T13:30:00Z", "id_type": "passport", "id_country": "IN" },
+    "sanctions_attestation": { "clean": true, "screened_at": "2026-05-21T14:25:00Z" }
   }'
 ```
 </CodeGroup>
@@ -103,6 +144,8 @@ curl -X POST https://api.zennopay.in/v1/payment_intents \
   "status": "created",
   "amount_usd_cents": 345,
   "corridor": "th_promptpay",
+  "session_token": "zpst_9b1f…",
+  "session_expires_at": 1716305700,
   "created_at": "2026-05-21T14:30:00Z"
 }
 ```

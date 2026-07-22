@@ -19,7 +19,7 @@ app never leaves the foreground.
 - iOS and Android targets (the sheet uses the device camera via
   `mobile_scanner`)
 - A backend [session endpoint](/payments/session-endpoint) that creates the
-  intent and mints the session JWT
+  intent and returns the Zennopay-minted session token
 
 ## Install
 
@@ -57,8 +57,9 @@ ZennopayConfig.custom('http://localhost:3000')
 ```
 
 Your API keys never live in the app: per payment, your backend
-[creates the intent and mints a session JWT](/payments/session-endpoint) and
-returns both to your app. The SDK holds only that short-lived session token.
+[creates the intent](/payments/session-endpoint) and Zennopay returns a session
+token. Your backend passes it to your app, and the SDK holds only that
+short-lived token.
 
 ## Present the PaymentSheet
 
@@ -69,19 +70,20 @@ import 'package:flutter/material.dart';
 import 'package:zennopay_flutter/zennopay_flutter.dart';
 
 Future<void> scanAndPay(BuildContext context) async {
-  // 1. Ask YOUR backend for a checkout session (intent + session JWT).
+  // 1. Ask YOUR backend for a checkout session (intent + session token).
   final session = await walletApi.createCheckoutSession();
 
   // 2. Present the PaymentSheet and await the terminal result.
   final result = await Zennopay.presentSheet(
     context: context,
     intentId: session.intentId,
-    sessionJwt: session.sessionJwt,
+    sessionToken: session.sessionToken,
     refreshSession: (intentId) async {
-      // Called on session expiry (401): re-mint for the SAME intent,
+      // Called on session expiry (401): ask your backend to re-mint a token
+      // for the SAME intent (POST /v1/payment_intents/:id/session),
       // or return null if you can't.
       final refreshed = await walletApi.refreshSession(intentId);
-      return refreshed?.sessionJwt;
+      return refreshed?.sessionToken;
     },
     config: ZennopayConfig.sandbox, // ZennopayConfig.production for live
   );
@@ -161,7 +163,7 @@ final appearance = ZennopayAppearance(
 final result = await Zennopay.presentSheet(
   context: context,
   intentId: session.intentId,
-  sessionJwt: session.sessionJwt,
+  sessionToken: session.sessionToken,
   appearance: appearance,
 );
 ```
@@ -191,8 +193,8 @@ await Zennopay.presentSheet(
 - **Sandbox end-to-end:** `ZennopayConfig.sandbox` + a session from your
   sandbox backend drives the flow to a real `captured` on the sandbox payout
   rail.
-- **Fail-fast checks:** a blank or mismatched JWT resolves immediately with
-  `Failed` (`invalidJwt` / `intentMismatch`) before any UI is shown.
+- **Fail-fast checks:** a blank or mismatched session token resolves immediately
+  with `Failed` (`invalidJwt` / `intentMismatch`) before any UI is shown.
 
 The full sandbox checklist — including limit-blocked payments and pending
 reconciliation — is in [Test your integration](/payments/testing).

@@ -60,6 +60,12 @@
             ]
           },
           {
+            "group": "Advanced",
+            "pages": [
+              "advanced/self-signed-sessions"
+            ]
+          },
+          {
             "group": "Resources",
             "pages": [
               "changelog"
@@ -81,6 +87,7 @@
                 "group": "Payment Intents",
                 "pages": [
                   "api-reference/payment-intents/create",
+                  "api-reference/payment-intents/session",
                   "api-reference/payment-intents/get",
                   "api-reference/payment-intents/receipt"
                 ]

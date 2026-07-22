@@ -7,7 +7,8 @@ mode: "wide"
 
 <Card title="Get started" icon="bolt" href="/quickstart" horizontal cta="Start building">
   Stand up a sandbox integration end to end in about 10 minutes — sign your
-  first HMAC call, mint a session token, present the PaymentSheet.
+  first HMAC call, read back the session token Zennopay mints, present the
+  PaymentSheet. No key pair required.
 </Card>
 
 Already know the shape? Jump straight to the [PaymentSheet overview](/payments/overview).
@@ -20,8 +21,8 @@ Already know the shape? Jump straight to the [PaymentSheet overview](/payments/o
     one PaymentResult out.
   </Card>
   <Card title="Session endpoint" icon="server" href="/payments/session-endpoint">
-    The one backend route every payment starts with: create an intent, mint the
-    session token.
+    The one backend route every payment starts with: create an intent, return
+    the session token Zennopay mints.
   </Card>
   <Card title="Reopen a receipt" icon="receipt" href="/payments/reopen-receipt">
     Keep your own history list; reopen the authoritative Zennopay receipt with
@@ -57,11 +58,11 @@ partner's own app. Two corridors are live today:
 ## How a payment flows
 
 1. The end user opens the partner app and chooses to pay a SEA merchant.
-2. Partner backend calls **`POST /v1/payment_intents`** (signed with HMAC) to
-   create a Zennopay intent.
-3. Partner backend mints a short-lived **session token** identifying that
-   specific user + intent.
-4. Partner app opens the Zennopay SDK with the `intent_id` + token.
+2. Partner backend calls **`POST /v1/payment_intents`** (signed with HMAC),
+   passing the user's KYC + sanctions attestations, to create a Zennopay intent.
+3. Zennopay mints a short-lived **session token** for that intent and returns it
+   in the same response; the backend hands it to the app.
+4. Partner app opens the Zennopay SDK with the `intent_id` + session token.
 5. The user scans the merchant QR, confirms the amount, and slides to pay.
 6. Zennopay debits the partner's pre-funded USD float, routes the transaction
    to its licensed payout partner network for the destination corridor, and the
@@ -79,6 +80,6 @@ The moving parts and where the money sits at each step are diagrammed in
 - **FBO custody.** Partner funds are held in a For-Benefit-Of account at our US
   banking partner. Funds remain attributable to the partner (and beneficially to
   its end users) at all times.
-- **Two-layer auth.** Long-lived HMAC on the server side, short-lived
-  per-session token on the client side — the dual-token pattern common to modern
-  payment APIs.
+- **One credential.** Your backend signs REST calls with a long-lived HMAC
+  secret; Zennopay mints the short-lived, per-intent session token your app
+  holds. No key pair to generate or register.

@@ -18,8 +18,8 @@ and works from both UIKit and SwiftUI hosts.
   browser tab, and the URL-scheme redirect are gone. Replace the call with
   `Zennopay.presentCheckout(...)` below, delete the `CFBundleURLTypes` entry
   you registered for `yourapp://payment-result`, and add
-  `NSCameraUsageDescription` to your Info.plist. Your backend contract
-  (intent + session JWT) is unchanged.
+  `NSCameraUsageDescription` to your Info.plist. Your app passes the
+  Zennopay-minted session token to `presentCheckout` (see below).
 </Warning>
 
 ## Requirements
@@ -28,7 +28,7 @@ and works from both UIKit and SwiftUI hosts.
 - Swift 5.9+ / Xcode 15+
 - No third-party dependencies
 - A backend [session endpoint](/payments/session-endpoint) that creates the
-  intent and mints the session JWT
+  intent and returns the Zennopay-minted session token
 
 ## Install
 
@@ -89,8 +89,9 @@ config: ZennopayConfig(apiBaseURL: URL(string: "http://localhost:3000")!)
 ```
 
 Your API keys never live in the app: per payment, your backend
-[creates the intent and mints a session JWT](/payments/session-endpoint) and
-returns both to your app. The SDK holds only that short-lived session token.
+[creates the intent](/payments/session-endpoint) and Zennopay returns a session
+token. Your backend passes it to your app, and the SDK holds only that
+short-lived token.
 
 ## Present the PaymentSheet
 
@@ -104,14 +105,14 @@ final class WalletViewController: UIViewController {
 
     struct CheckoutSession: Decodable {
         let intentId: String
-        let sessionJwt: String
+        let sessionToken: String
     }
 
     @IBAction func scanAndPayTapped() {
         Task { @MainActor in
             // 1. Ask YOUR backend for a checkout session.
-            //    It creates the payment intent (server-to-server, HMAC-signed)
-            //    and mints a short-lived session JWT bound to that intent.
+            //    It creates the payment intent (server-to-server, HMAC-signed);
+            //    Zennopay returns a short-lived session token bound to it.
             let session: CheckoutSession = try await api.post("/wallet/checkout-session")
 
             // 2. Present the PaymentSheet. The SDK owns everything from here
@@ -119,15 +120,15 @@ final class WalletViewController: UIViewController {
             Zennopay.presentCheckout(
                 from: self,
                 intentID: session.intentId,
-                sessionJWT: session.sessionJwt,
+                sessionToken: session.sessionToken,
                 refreshSession: { intentID in
-                    // Called if the session expires mid-flow (401). Re-mint a
-                    // fresh JWT for the SAME intent from your backend, or
-                    // return nil if you can't (the SDK then surfaces an
-                    // auth failure).
+                    // Called if the session expires mid-flow (401). Ask your
+                    // backend to re-mint a fresh token for the SAME intent
+                    // (POST /v1/payment_intents/:id/session), or return nil if
+                    // you can't (the SDK then surfaces an auth failure).
                     let refreshed: CheckoutSession? = try? await api.post(
                         "/wallet/checkout-session/\(intentID)/refresh")
-                    return refreshed?.sessionJwt
+                    return refreshed?.sessionToken
                 },
                 config: .sandbox   // .production for live traffic
             ) { result in
@@ -150,9 +151,9 @@ final class WalletViewController: UIViewController {
 }
 ```
 
-That's the whole client integration. The SDK validates the JWT's structure,
-expiry, and intent binding **before** presenting any UI, so a mis-paired token
-fails fast with `.failed` instead of an empty sheet.
+That's the whole client integration. The SDK validates the session token's
+structure, expiry, and intent binding **before** presenting any UI, so a
+mis-paired token fails fast with `.failed` instead of an empty sheet.
 
 <Tip>
   `presentCheckout` is `@MainActor` and needs a host view controller. From
@@ -202,7 +203,7 @@ appearance.logo = UIImage(named: "wordmark")
 Zennopay.presentCheckout(
     from: self,
     intentID: session.intentId,
-    sessionJWT: session.sessionJwt,
+    sessionToken: session.sessionToken,
     appearance: appearance,
     config: .production
 ) { result in /* … */ }
@@ -225,8 +226,9 @@ either way). Two useful loops:
 1. **Sandbox end-to-end:** run against `.sandbox` with a session from your
    sandbox backend and a real VietQR payload; the payout runs on the sandbox
    rail and the intent reaches `captured`.
-2. **Fail-fast checks:** pass an empty or mismatched JWT and assert you get an
-   immediate `.failed(.invalidJWT)` / `.failed(.intentMismatch)` with no UI.
+2. **Fail-fast checks:** pass an empty or mismatched session token and assert
+   you get an immediate `.failed(.invalidJWT)` / `.failed(.intentMismatch)`
+   with no UI.
 
 On a physical device, camera scanning and the fallbacks are exercised for
 real — that's the pre-release checklist. The full sandbox checklist —
@@ -235,7 +237,7 @@ including limit-blocked payments and pending reconciliation — is in
 
 ## Under the hood (what you can rely on)
 
-- The session JWT lives **in memory only** and is sent as
+- The session token lives **in memory only** and is sent as
   `Authorization: Bearer` on every call — it is never placed in a URL.
 - Slide-to-pay fires `POST /confirm` **exactly once**; the idempotency key is
   persisted before the network call, so retries and process deaths can never

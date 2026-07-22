@@ -12,9 +12,10 @@ directly.
 ## Authorization
 
 <ParamField header="Authorization" type="string" required>
-  `Bearer <receiptToken>` — a partner-minted RS256 JWT with `aud:
-  "zennopay-receipt"` and `sub` set to the opaque user ID whose receipt this is.
-  Read-only, reusable, and **not** intent-bound. See
+  `Bearer <receiptToken>` — a Zennopay-minted receipt token (from
+  [`POST /v1/receipt_tokens`](/payments/reopen-receipt#fetch-the-receipt-token)),
+  scoped to the opaque user ID whose receipt this is. Read-only, reusable, and
+  **not** intent-bound. See
   [Reopen a receipt → the receipt token](/payments/reopen-receipt#the-receipt-token).
 </ParamField>
 
