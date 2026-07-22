@@ -4,11 +4,11 @@ description: "A native, in-process pay experience — scan → amount → slide-
 ---
 
 The **PaymentSheet** is Zennopay's prebuilt, native payment UI, modeled on
-Stripe's PaymentSheet. Your backend creates a payment intent and mints a
-short-lived session token; your app hands both to the SDK in a single call; the
-SDK renders the entire pay experience — QR scan, amount + FX quote,
-slide-to-pay, and result — **natively, in-process**, and returns one typed
-`PaymentResult`.
+Stripe's PaymentSheet. Your backend creates a payment intent and Zennopay
+returns a short-lived session token; your app hands the intent ID and token to
+the SDK in a single call; the SDK renders the entire pay experience — QR scan,
+amount + FX quote, slide-to-pay, and result — **natively, in-process**, and
+returns one typed `PaymentResult`.
 
 There is no browser tab, no redirect, and no URL scheme. The camera scanner,
 slide-to-pay physics, quote refresh, retries, and status polling are all inside
@@ -67,11 +67,11 @@ payment resolves asynchronously and unspent funds are released automatically).
 
 ## How it works
 
-Per payment, your backend does two things — creates the intent
-(server-to-server, HMAC-signed with your secret key) and mints a short-lived
-**session token** (an RS256 JWT bound to that intent). Your app passes both to
-the SDK; the SDK talks to the Zennopay API directly with the session token as
-`Authorization: Bearer`.
+Per payment, your backend makes one HMAC-signed call — it creates the intent
+(passing the user's KYC + sanctions attestations) — and Zennopay returns a
+short-lived **session token** bound to that intent. Your app passes the intent
+ID and token to the SDK; the SDK talks to the Zennopay API directly with the
+session token as `Authorization: Bearer`.
 
 ```mermaid
 sequenceDiagram
@@ -84,10 +84,10 @@ sequenceDiagram
 
     U->>App: Tap "Scan & Pay"
     App->>BE: POST /wallet/checkout-session
-    BE->>ZP: POST /v1/payment_intents (HMAC-signed)
-    ZP-->>BE: intent_id
-    BE-->>App: intent_id + session JWT (RS256, ≤5 min, single-use)
-    App->>App: Zennopay.presentCheckout(intentId, sessionJWT)
+    BE->>ZP: POST /v1/payment_intents (HMAC-signed + attestations)
+    ZP-->>BE: intent_id + session_token (short-lived, single-use)
+    BE-->>App: intent_id + session token
+    App->>App: Zennopay.presentCheckout(intentId, sessionToken)
     U->>App: Scan merchant QR
     App->>ZP: POST /v1/payment_intents/:id/scan (Bearer)
     ZP-->>App: merchant + quote-bound amount (VND + USD)
@@ -101,17 +101,17 @@ sequenceDiagram
     ZP-->>BE: webhook: payment_intent.captured
 ```
 
-The session token setup — creating the intent and minting the JWT — is the only
-backend work. It is documented end to end, with a complete Node.js reference
+Creating the intent and returning the session token is the only backend work.
+It is documented end to end, with a complete Node.js reference
 implementation, in [Build your session endpoint](/payments/session-endpoint).
 
 <Info>
   **Trust model.** Your **publishable key** (`pk_...`) identifies your app and
-  is safe to ship in a binary. Your **secret key** (`sk_...`) signs
-  server-to-server calls and never leaves your backend. The session JWT the SDK
-  holds is scoped to a single intent, expires in ≤ 5 minutes, and its `sub` is
-  your opaque user ID — never a raw government ID. Both keys come from the
-  Zennopay Console → **Developers** tab.
+  is safe to ship in a binary. Your **secret key** (`sk_...`) HMAC-signs
+  server-to-server calls and never leaves your backend. The **session token** the
+  SDK holds is minted by Zennopay, scoped to a single intent, short-lived, and
+  opaque to you. There is no partner key pair to generate. Both keys come from
+  the Zennopay Console → **Developers** tab.
 </Info>
 
 ## What you don't build

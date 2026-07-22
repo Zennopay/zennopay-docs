@@ -18,8 +18,8 @@ CameraX + ML Kit, on-device.
   partner-defined deep link, and `Zennopay.openCheckout(...)` are gone. Replace
   the call with `Zennopay.presentCheckout(...)` below and **delete** the
   `ZennopayCallbackActivity` intent-filter from your manifest — the result now
-  comes back in-process via the callback, not a deep link. Your backend
-  contract (intent + session JWT) is unchanged.
+  comes back in-process via the callback, not a deep link. Your app passes the
+  Zennopay-minted session token to `presentCheckout` (below).
 </Warning>
 
 ## Requirements
@@ -29,7 +29,7 @@ CameraX + ML Kit, on-device.
 - Your app does **not** need to use Compose — the sheet runs in its own
   Activity. A Compose-first entry point is provided for hosts that are.
 - A backend [session endpoint](/payments/session-endpoint) that creates the
-  intent and mints the session JWT
+  intent and returns the Zennopay-minted session token
 
 ## Install
 
@@ -76,8 +76,9 @@ You can also set a process-wide default once with
 `Zennopay.configure(config)` — per-call `config` still overrides it.
 
 Your API keys never live in the app: per payment, your backend
-[creates the intent and mints a session JWT](/payments/session-endpoint) and
-returns both to your app. The SDK holds only that short-lived session token.
+[creates the intent](/payments/session-endpoint) and Zennopay returns a session
+token. Your backend passes it to your app, and the SDK holds only that
+short-lived token.
 
 ## Present the PaymentSheet
 
@@ -103,9 +104,10 @@ fun PayButton(session: CheckoutSession, viewModel: WalletViewModel) {
     val present = rememberZennopayLauncher(
         config = ZennopayConfig.SANDBOX,        // .PRODUCTION for live traffic
         refreshSession = { intentId ->
-            // Called on session expiry (401): re-mint for the SAME intent,
+            // Called on session expiry (401): ask your backend to re-mint a
+            // token for the SAME intent (POST /v1/payment_intents/:id/session),
             // or return null if you can't.
-            viewModel.remintSessionJwt(intentId)
+            viewModel.remintSessionToken(intentId)
         },
     ) { result ->
         when (result) {
@@ -115,7 +117,7 @@ fun PayButton(session: CheckoutSession, viewModel: WalletViewModel) {
         }
     }
 
-    Button(onClick = { present(session.intentId, session.sessionJwt) }) {
+    Button(onClick = { present(session.intentId, session.sessionToken) }) {
         Text("Scan & Pay")
     }
 }
@@ -133,12 +135,12 @@ import com.zennopay.sdk.ZennopayConfig
 
 class WalletActivity : ComponentActivity() {
 
-    private fun startPayment(intentId: String, sessionJwt: String) {
+    private fun startPayment(intentId: String, sessionToken: String) {
         Zennopay.presentCheckout(
             activity = this,
             intentId = intentId,
-            sessionJwt = sessionJwt,
-            refreshSession = { id -> walletApi.remintSessionJwt(id) },
+            sessionToken = sessionToken,
+            refreshSession = { id -> walletApi.remintSessionToken(id) },
             config = ZennopayConfig.SANDBOX,
         ) { result ->
             when (result) {
@@ -152,13 +154,13 @@ class WalletActivity : ComponentActivity() {
 ```
 
 The sheet runs in its own Activity, so it owns its lifecycle end to end; your
-callback fires exactly once with the terminal result. The session JWT is handed
-to that Activity **in memory** — it is never serialized into the launching
-`Intent`, so it can't leak via logcat or recents.
+callback fires exactly once with the terminal result. The session token is
+handed to that Activity **in memory** — it is never serialized into the
+launching `Intent`, so it can't leak via logcat or recents.
 
 <Tip>
-  The SDK validates the JWT's structure, expiry, and `zennopay:intent_id`
-  binding synchronously, before launching anything. A token minted for a
+  The SDK validates the session token's structure, expiry, and intent binding
+  synchronously, before launching anything. A token issued for a
   different intent fails immediately with
   `PaymentResult.Failed(error = IntentMismatch)` — no blank screen, no network
   call.
@@ -214,7 +216,7 @@ val appearance = ZennopayAppearance(
 Zennopay.presentCheckout(
     activity = this,
     intentId = session.intentId,
-    sessionJwt = session.sessionJwt,
+    sessionToken = session.sessionToken,
     appearance = appearance,
 ) { result -> /* … */ }
 ```
@@ -237,8 +239,8 @@ Zennopay look, following system light/dark.
 - **Sandbox end-to-end:** run `ZennopayConfig.SANDBOX` with a session from your
   sandbox backend; the payout runs on the sandbox rail and the intent reaches
   `captured`.
-- **Fail-fast checks:** pass a blank or mismatched JWT and assert an immediate
-  `Failed(InvalidJwt)` / `Failed(IntentMismatch)` with no UI.
+- **Fail-fast checks:** pass a blank or mismatched session token and assert an
+  immediate `Failed(InvalidJwt)` / `Failed(IntentMismatch)` with no UI.
 - **Physical device:** camera scanning and the runtime-permission prompt are
   the pre-release checklist.
 
@@ -247,7 +249,7 @@ reconciliation — is in [Test your integration](/payments/testing).
 
 ## Under the hood (what you can rely on)
 
-- The session JWT is held in memory and sent as `Authorization: Bearer` on
+- The session token is held in memory and sent as `Authorization: Bearer` on
   every REST call — never placed in a URL or an `Intent` extra.
 - Slide-to-pay fires `POST /confirm` **exactly once**; the idempotency key is
   persisted (DataStore) before the network call, so retries and process death

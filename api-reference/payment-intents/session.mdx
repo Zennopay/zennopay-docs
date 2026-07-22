@@ -1,0 +1,89 @@
+---
+title: "Re-mint session token"
+api: "POST /v1/payment_intents/{intent_id}/session"
+description: "Mint a fresh session token for an existing intent — the re-mint the SDK's refreshSession hook depends on."
+---
+
+When a [session token](/authentication#client-session-token) expires mid-flow,
+don't create a new intent — re-mint a token for the **same** one. Zennopay
+preserves the intent's scan / quote / confirm state across the re-mint, so the
+user's flow continues uninterrupted.
+
+This is exactly what your `refreshSession` hook calls your backend to do; your
+backend then makes this HMAC-signed call. See the refresh route in
+[Build your session endpoint](/payments/session-endpoint#reference-implementation-nodejs).
+
+## Headers
+
+Server-to-server only; HMAC-signed. See [Authentication](/authentication).
+
+<ParamField header="X-Zennopay-Key-Id" type="string" required>
+  Identifies which signing key was used.
+</ParamField>
+
+<ParamField header="X-Zennopay-Timestamp" type="string" required>
+  ISO-8601 / RFC 3339 UTC timestamp. ±5 minute skew.
+</ParamField>
+
+<ParamField header="X-Zennopay-Nonce" type="string" required>
+  Random 32-byte hex string (64 chars). Replays within 10 minutes are rejected.
+</ParamField>
+
+<ParamField header="X-Zennopay-Signature" type="string" required>
+  Base64 HMAC-SHA256 of the canonical request string. The body is empty, so the
+  body-hash line of the canonical request is the empty string.
+</ParamField>
+
+## Path parameters
+
+<ParamField path="intent_id" type="string" required>
+  The intent to re-mint a session token for, e.g. `zp_AbCd1234EfGh5678`. The
+  partner identified by the HMAC key must own it, and it must not be in a
+  terminal state (`captured`, `failed`, `expired`, `cancelled`).
+</ParamField>
+
+## Response
+
+<ResponseField name="intent_id" type="string">
+  Echoes the path parameter.
+</ResponseField>
+
+<ResponseField name="session_token" type="string">
+  A fresh Zennopay-minted session token for the same intent. Return it to your
+  app; the SDK swaps it in and retries the call that 401'd.
+</ResponseField>
+
+<ResponseField name="session_expires_at" type="integer">
+  Unix epoch **seconds** at which the new token stops verifying.
+</ResponseField>
+
+## Example
+
+Example uses the sandbox host. Swap to `https://api.zennopay.in` in
+production. See [Environments](/api-reference/environments).
+
+<CodeGroup>
+```bash Sandbox
+curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents/zp_AbCd1234EfGh5678/session \
+  -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
+  -H "X-Zennopay-Timestamp: 2026-05-21T14:35:00Z" \
+  -H "X-Zennopay-Nonce: b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef0011" \
+  -H "X-Zennopay-Signature: <base64_hmac_sha256>"
+```
+
+```bash Production
+curl -X POST https://api.zennopay.in/v1/payment_intents/zp_AbCd1234EfGh5678/session \
+  -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
+  -H "X-Zennopay-Timestamp: 2026-05-21T14:35:00Z" \
+  -H "X-Zennopay-Nonce: b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef0011" \
+  -H "X-Zennopay-Signature: <base64_hmac_sha256>"
+```
+</CodeGroup>
+
+```json Response
+{
+  "intent_id": "zp_AbCd1234EfGh5678",
+  "session_token": "zpst_c4a7…",
+  "session_expires_at": 1716306000
+}
+```

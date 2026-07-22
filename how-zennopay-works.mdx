@@ -13,10 +13,10 @@ native [PaymentSheet](/payments/overview).
 flowchart LR
     subgraph Partner
         App[Partner app<br/>+ PaymentSheet SDK]
-        BE[Partner backend<br/>creates intent, mints session JWT]
+        BE[Partner backend<br/>creates intent HMAC-signed]
     end
     subgraph Zennopay
-        API[Zennopay API]
+        API[Zennopay API<br/>mints session token]
         FBO[USD FBO account<br/>pre-funded by partner]
     end
     subgraph Corridor [Destination corridor]
@@ -26,7 +26,8 @@ flowchart LR
 
     App -- "checkout session" --> BE
     BE -- "HMAC-signed API calls" --> API
-    App -- "scan / confirm / status<br/>(session JWT)" --> API
+    API -- "session token" --> BE
+    App -- "scan / confirm / status<br/>(session token)" --> API
     API -- "per-payment drawdown" --> FBO
     FBO -- "USD" --> Rail
     Rail -- "local-currency payout" --> M
@@ -34,9 +35,10 @@ flowchart LR
 
 Three things to hold onto:
 
-1. **Two auth layers.** Your backend signs API calls with a long-lived HMAC
-   secret; your app holds only a short-lived, single-intent session JWT.
-   See [Authentication](/authentication).
+1. **One credential.** Your backend signs API calls with a long-lived HMAC
+   secret; Zennopay mints the short-lived, single-intent session token your app
+   holds. No key pair to generate or register. See
+   [Authentication](/authentication).
 2. **USD-only custody.** Partner funds sit in a For-Benefit-Of account at
    Zennopay's US banking partner; all FX happens downstream in the payout
    partner network. See [Funds flow](/concepts/funds-flow).

@@ -1,6 +1,6 @@
 # zennopay-docs
 
-Mintlify source for [docs.zennopay.com](https://docs.zennopay.com) — the public
+Mintlify source for [docs.zennopay.in](https://docs.zennopay.in) — the public
 documentation for the Zennopay cross-border QR payments API.
 
 Zennopay is a B2B fintech API that lets partner fintechs embed cross-border
@@ -15,7 +15,8 @@ merchant from a USD wallet balance.
 | `quickstart.mdx` | 10-minute onboarding for partner backends |
 | `how-zennopay-works.mdx` | One diagram of the whole system, with links to go deeper |
 | `payments/` | Accept payments: PaymentSheet overview, session endpoint, iOS, Android, Flutter, React Native, testing |
-| `authentication.mdx` | HMAC + JWT dual-layer auth, with test vectors |
+| `authentication.mdx` | HMAC-only partner auth + the Zennopay-minted session token, with test vectors |
+| `advanced/` | Optional, secondary: bring-your-own signing key (Model A) |
 | `concepts/` | Funds flow, corridors, settlement & reconciliation |
 | `fundamentals/` | Per-user corridor limits |
 | `api-reference/` | REST endpoints (Payment Intents, Webhooks) |

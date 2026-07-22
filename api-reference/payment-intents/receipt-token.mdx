@@ -1,0 +1,92 @@
+---
+title: "Mint receipt token"
+api: "POST /v1/payment_intents/{intent_id}/receipt_token"
+description: "Mint a read-only, reusable receipt token so the SDK can reopen the authoritative receipt for a past payment."
+---
+
+Reopening the authoritative [receipt](/api-reference/payment-intents/receipt) for
+a past payment needs a **receipt token** — a read-only credential the SDK sends
+as `Authorization: Bearer` on `GET /receipt`. Like the session token, Zennopay
+mints it; you request one with a single HMAC-signed call for an intent you own.
+There is **no request body**.
+
+The token's `sub` is derived from the **stored intent's `partner_user_id`** — you
+don't supply it. That makes the token **user-scoped**: it can open any of that
+user's receipts within its window, but no one else's. See
+[Reopen a receipt](/payments/reopen-receipt) for the full SDK flow.
+
+## Headers
+
+Server-to-server only; HMAC-signed. See [Authentication](/authentication).
+
+<ParamField header="X-Zennopay-Key-Id" type="string" required>
+  Identifies which signing key was used.
+</ParamField>
+
+<ParamField header="X-Zennopay-Timestamp" type="string" required>
+  ISO-8601 / RFC 3339 UTC timestamp. ±5 minute skew.
+</ParamField>
+
+<ParamField header="X-Zennopay-Nonce" type="string" required>
+  Random 32-byte hex string (64 chars). Replays within 10 minutes are rejected.
+</ParamField>
+
+<ParamField header="X-Zennopay-Signature" type="string" required>
+  Base64 HMAC-SHA256 of the canonical request string. The body is empty, so the
+  body-hash line of the canonical request is the empty string.
+</ParamField>
+
+## Path parameters
+
+<ParamField path="intent_id" type="string" required>
+  The intent whose user should be able to reopen receipts, e.g.
+  `zp_AbCd1234EfGh5678`. The partner identified by the HMAC key must **own** it.
+</ParamField>
+
+<Warning>
+  **No existence leak.** If the intent isn't yours — a cross-partner id or an
+  unknown id — the response is an identical `404`. It does not distinguish
+  "doesn't exist" from "not yours".
+</Warning>
+
+## Response
+
+<ResponseField name="receipt_token" type="string">
+  A Zennopay-minted, read-only receipt token (`aud: zennopay-receipt`). Return it
+  to your app; the SDK sends it as `Authorization: Bearer` on `GET /receipt`.
+  Reusable — the SDK reuses it to poll a pending receipt to a terminal state.
+</ResponseField>
+
+<ResponseField name="receipt_token_expires_at" type="integer">
+  Unix epoch **seconds** at which the token stops verifying (TTL 300s).
+</ResponseField>
+
+## Example
+
+Example uses the sandbox host. Swap to `https://api.zennopay.in` in
+production. See [Environments](/api-reference/environments).
+
+<CodeGroup>
+```bash Sandbox
+curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents/zp_AbCd1234EfGh5678/receipt_token \
+  -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
+  -H "X-Zennopay-Timestamp: 2026-05-21T15:02:00Z" \
+  -H "X-Zennopay-Nonce: c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef001122" \
+  -H "X-Zennopay-Signature: <base64_hmac_sha256>"
+```
+
+```bash Production
+curl -X POST https://api.zennopay.in/v1/payment_intents/zp_AbCd1234EfGh5678/receipt_token \
+  -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
+  -H "X-Zennopay-Timestamp: 2026-05-21T15:02:00Z" \
+  -H "X-Zennopay-Nonce: c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef001122" \
+  -H "X-Zennopay-Signature: <base64_hmac_sha256>"
+```
+</CodeGroup>
+
+```json Response
+{
+  "receipt_token": "zprt_2f9c…",
+  "receipt_token_expires_at": 1716306300
+}
+```

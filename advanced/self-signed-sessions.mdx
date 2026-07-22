@@ -1,0 +1,219 @@
+---
+title: "Advanced: bring-your-own signing key (Model A)"
+sidebarTitle: "Self-signed sessions (Model A)"
+description: "Optional. Self-sign your own RS256 session tokens instead of letting Zennopay mint them. Most partners should use the default HMAC-only flow (Model B)."
+---
+
+<Warning>
+  **You almost certainly don't need this.** The default integration
+  ([Model B](/authentication)) is HMAC-only: Zennopay mints the session token
+  and returns it from the [create-intent call](/api-reference/payment-intents/create).
+  Model A only exists for partners with a hard requirement to sign their own
+  session tokens — e.g. an internal policy that no third party may issue a
+  credential scoped to their user. It is strictly secondary. If you're not sure,
+  use Model B.
+</Warning>
+
+## When Model A applies
+
+In Model A you mint the client session token yourself as an **RS256 JWT** and
+register your public key with Zennopay. You take on key generation, JWKS
+hosting, rotation, and token minting — in exchange for Zennopay never issuing a
+credential on your users' behalf.
+
+Everything else is identical to Model B: server-to-server calls are still
+HMAC-signed, corridors and limits are unchanged, and the SDK integration is the
+same one call. The only difference is **who produces the session token**.
+
+| | Model B (default) | Model A (this page) |
+|---|---|---|
+| Session token | Zennopay-minted, returned from create | You mint it, RS256 |
+| Key pair | none | You generate + publish an RSA public key |
+| `iss` / `kid` / JWKS | not used | required |
+| Attestations | in the create body | in the JWT claims |
+| Server-to-server auth | HMAC | HMAC (unchanged) |
+
+<Note>
+  To enable Model A, ask your Zennopay integration engineer to switch your
+  partner record to self-signed sessions and register your JWKS URL. Until it's
+  enabled, Zennopay ignores partner-signed tokens and mints its own.
+</Note>
+
+## Algorithm — RS256
+
+Session JWTs are signed with **RS256 (asymmetric)**. You sign with your RSA
+private key; Zennopay verifies with your public key, fetched from your JWKS
+endpoint.
+
+Rationale: asymmetric means Zennopay never holds your signing key. You can
+rotate keys independently, and Zennopay discovers new keys automatically by
+refreshing your JWKS.
+
+<Warning>
+  HS256 (symmetric) is **not** accepted. Sharing a JWT signing secret would
+  conflate browser-visible trust with server-side trust.
+</Warning>
+
+## Required claims
+
+All session JWTs MUST include these claims. Missing any field = rejected.
+
+| Claim | Type | Description |
+|---|---|---|
+| `iss` | string | Issuer URL, e.g. `https://api.your-domain.com`. Must match your registered JWKS URL. |
+| `aud` | string | Must be `"zennopay-checkout"`. |
+| `sub` | string | Your internal, opaque user ID (never a raw government ID). |
+| `iat` | integer | Issued-at, Unix epoch seconds. |
+| `exp` | integer | Expiry. Must be ≤ `iat + 600` (10-minute max session). |
+| `jti` | string | Unique JWT ID. UUID v7 recommended. Enforced one-time-use. |
+| `nbf` | integer | Not-before. Optional. |
+| `zennopay:intent_id` | string | Zennopay intent ID this JWT authorizes. Format `zp_...`. |
+| `zennopay:amount_usd_cents` | integer | Authorized amount in USD cents. |
+| `zennopay:corridor` | string | `"th_promptpay"` or `"vn_vietqr"`. Locks the route at issuance. |
+| `zennopay:kyc_attestation` | object | `{ verified, method, verified_at, id_type, id_country }` |
+| `zennopay:sanctions_attestation` | object | `{ clean, screened_at }` |
+
+Zennopay-specific claims live under the `zennopay:` prefix to avoid collision
+with future standard claims.
+
+### Example JWT payload
+
+```json
+{
+  "iss": "https://api.your-domain.com",
+  "aud": "zennopay-checkout",
+  "sub": "your_user_xyz123",
+  "iat": 1716305400,
+  "exp": 1716305700,
+  "jti": "0190a8b3-4c5d-7e6f-8a9b-c0d1e2f3a4b5",
+  "zennopay:intent_id": "zp_AbCd1234EfGh5678",
+  "zennopay:amount_usd_cents": 345,
+  "zennopay:corridor": "th_promptpay",
+  "zennopay:kyc_attestation": {
+    "verified": true,
+    "method": "your_kyc_v2",
+    "verified_at": "2026-05-21T13:30:00Z",
+    "id_type": "passport",
+    "id_country": "IN"
+  },
+  "zennopay:sanctions_attestation": {
+    "clean": true,
+    "screened_at": "2026-05-21T14:25:00Z"
+  }
+}
+```
+
+<Note>
+  In Model A the attestations live in the token you sign, so you do **not**
+  send `kyc_attestation` / `sanctions_attestation` in the create-intent body —
+  the create call carries only `partner_user_id`, `amount_usd_cents`, and
+  `corridor`.
+</Note>
+
+## Mint the session token (Node.js)
+
+```ts
+import crypto from "node:crypto";
+import fs from "node:fs";
+
+const JWT_ISS = "https://api.your-domain.com";            // your registered issuer
+const JWT_PRIVATE_PEM = fs.readFileSync("./keys/session_signing_key.pem", "utf8");
+
+function b64url(input: string | Buffer) {
+  return Buffer.from(input).toString("base64url");
+}
+
+function mintSessionJwt(intentId: string, user: User, amountUsdCents: number) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", kid: "your-rsa-key-1", typ: "JWT" };
+  const payload = {
+    iss: JWT_ISS,
+    aud: "zennopay-checkout",
+    sub: user.id,                      // your OPAQUE user id — never a gov ID
+    jti: crypto.randomUUID(),          // single-use: consumed by confirm
+    iat: now,
+    exp: now + 300,                    // 5 minutes
+    "zennopay:intent_id": intentId,
+    "zennopay:amount_usd_cents": amountUsdCents,
+    "zennopay:corridor": "vn_vietqr",
+    "zennopay:kyc_attestation": {
+      verified: true,
+      method: "your_kyc_v2",
+      verified_at: user.kycVerifiedAt,
+      id_type: "passport",
+      id_country: "IN",
+    },
+    "zennopay:sanctions_attestation": {
+      clean: true,
+      screened_at: user.sanctionsScreenedAt,
+    },
+  };
+  const signingInput = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
+  const signature = crypto
+    .createSign("RSA-SHA256")
+    .update(signingInput)
+    .sign(JWT_PRIVATE_PEM);
+  return `${signingInput}.${signature.toString("base64url")}`;
+}
+```
+
+Return the minted token to your app as the `sessionToken` — the SDK integration
+is identical to Model B.
+
+## JWKS endpoint requirements
+
+Publish your JWKS at the standard well-known path:
+
+```
+https://{your-domain}/.well-known/jwks.json
+```
+
+The response must include at least one active signing key with:
+
+- `use: "sig"`
+- `kty: "RSA"`
+- `alg: "RS256"`
+- `kid` matching the JWT header's `kid`
+- Modulus `n` and exponent `e` (standard RSA public-key encoding)
+
+During key rotation, publish both old and new keys for 14 days. Zennopay
+caches your JWKS for up to 10 minutes; on a JWT with an unknown `kid`,
+Zennopay invalidates the cache and refetches once before rejecting.
+
+## Verification order
+
+Zennopay verifies each partner-signed JWT in this order. Any failure rejects
+the session:
+
+1. JWT is a well-formed signed JWS (three segments).
+2. Fetch the JWKS for the `iss` value; pick the key matching the JWT header's `kid`.
+3. Verify the signature with the RSA public key.
+4. `aud` equals `"zennopay-checkout"`.
+5. `iss` matches the partner registered for the intent in the JWT.
+6. `exp` is in the future. `nbf` (if present) is in the past. `iat` is not
+   more than 15 minutes in the past.
+7. `exp - iat ≤ 600` (10-minute session cap).
+8. `jti` has not been consumed. On success it's stored for the remaining
+   token lifetime — one-time use.
+9. `intent_id` exists in Zennopay's database and is in state `created` or
+   `authorized`.
+10. `amount_usd_cents` matches the stored intent's amount.
+11. `corridor` matches the stored intent's corridor.
+
+## Debugging
+
+The [JWT inspector](/api-reference/jwt-inspector) decodes a partner-minted
+session JWT locally and sanity-checks the claims against this contract before
+you send it — useful only in Model A, since in Model B the session token is
+Zennopay-minted and opaque.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication (Model B)" icon="key" href="/authentication">
+    The default HMAC-only flow — start here unless you're sure you need Model A.
+  </Card>
+  <Card title="JWT inspector" icon="magnifying-glass" href="/api-reference/jwt-inspector">
+    Decode and validate a partner-minted session JWT.
+  </Card>
+</CardGroup>

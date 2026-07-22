@@ -1,150 +1,145 @@
 ---
 title: "Quickstart"
-description: "Stand up a sandbox integration end-to-end in about 10 minutes."
+description: "Stand up a sandbox integration end-to-end in about 10 minutes — HMAC only, no key pair."
 ---
 
 This walks through the minimum a partner backend needs to do to create a
-payment intent and hand it off to the Zennopay SDK on mobile.
+payment intent and hand it off to the Zennopay SDK on mobile. In the default
+integration (**Model B**) there is **one** credential to manage — your HMAC
+signing secret — and **no** key pair to generate.
 
 <Note>
-  Sandbox keys and JWKS endpoint are issued manually during onboarding for v1.
-  Email **partners@zennopay.in** to receive a sandbox key ID and signing
-  secret.
+  Sandbox HMAC keys are issued manually during onboarding for v1. Email
+  **partners@zennopay.in** to receive a sandbox key ID and signing secret.
 </Note>
 
 <Info>
-  **Environments.** Code below shows the production URL
-  (`https://api.zennopay.in`) for copy-paste readiness. While integrating,
-  swap in the sandbox host (`https://api.sandbox.zennopay.in`) — sandbox
-  HMAC keys are rejected by production and vice versa. See
-  [Environments](/api-reference/environments).
+  **Environments.** Point everything at the sandbox host
+  (`https://api.sandbox.zennopay.in`) while integrating; swap to production
+  (`https://api.zennopay.in`) at go-live. Sandbox HMAC keys are rejected by
+  production and vice versa. See [Environments](/api-reference/environments).
 </Info>
 
 ## 1. Get your credentials
 
-You will receive:
+You will receive exactly two things:
 
-- A **key ID** (e.g. `acme_sandbox_2026q2`) and a 32-byte **signing secret**
-  for HMAC-signed API calls.
-- A **JWKS endpoint URL** you publish on your own domain
-  (`https://your-domain/.well-known/jwks.json`), containing the RS256 public
-  key your backend uses to sign session JWTs.
+- A **key ID** (e.g. `acme_sandbox_2026q2`).
+- A 32-byte **signing secret** for HMAC-signed API calls.
+
+That's it — **no RSA key pair, no `iss`/`kid`, no JWKS endpoint to publish**.
+Zennopay mints the client session token for you. Store both values as
+environment variables on your backend:
+
+```bash
+ZENNOPAY_HMAC_KEY_ID=acme_sandbox_2026q2
+ZENNOPAY_HMAC_SECRET=<your_secret>          # server only — never ship in a client
+ZENNOPAY_BASE_URL=https://api.sandbox.zennopay.in
+```
 
 See [Authentication](/authentication) for the full key-management model.
 
-## 2. Sign and send your first API call
+## 2. Create a payment intent (and get a session token back)
 
 Construct the canonical request string, HMAC-SHA256 it with your signing
-secret, and send it with the four required headers.
+secret, and send it with the four required headers plus an `Idempotency-Key`.
+The body carries your **opaque** user ID, the authorized USD amount in cents,
+the corridor, and your per-payment KYC + sanctions attestations.
 
 <CodeGroup>
 ```bash cURL (Sandbox)
 curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents \
   -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
-  -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
+  -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef00" \
   -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
+  -H "Idempotency-Key: 6f1c2b3a-..." \
   -H "Content-Type: application/json" \
-  -d '{"amount_usd_cents":345,"corridor":"th_promptpay"}'
-```
-
-```bash cURL (Production)
-curl -X POST https://api.zennopay.in/v1/payment_intents \
-  -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
-  -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
-  -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
-  -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
-  -H "Content-Type: application/json" \
-  -d '{"amount_usd_cents":345,"corridor":"th_promptpay"}'
+  -d '{
+    "partner_user_id": "usr_8f3ka92m",
+    "amount_usd_cents": 345,
+    "corridor": "th_promptpay",
+    "kyc_attestation": { "verified": true, "method": "your_kyc_v2", "verified_at": "2026-05-21T13:30:00Z", "id_type": "passport", "id_country": "IN" },
+    "sanctions_attestation": { "clean": true, "screened_at": "2026-05-21T14:25:00Z" }
+  }'
 ```
 
 ```typescript Node
 import crypto from "node:crypto";
 
-// Pick the host for your environment. See /api-reference/environments.
-const ZENNOPAY_HOST =
-  process.env.ZENNOPAY_HOST ?? "https://api.sandbox.zennopay.in";
+const BASE_URL = process.env.ZENNOPAY_BASE_URL!;   // https://api.sandbox.zennopay.in
+const KEY_ID = process.env.ZENNOPAY_HMAC_KEY_ID!;  // acme_sandbox_2026q2
+const SECRET = process.env.ZENNOPAY_HMAC_SECRET!;  // <your_secret> — server only
 
-const secret = process.env.ZENNOPAY_SECRET!; // <your_secret>
 const method = "POST";
 const path = "/v1/payment_intents";
 const timestamp = new Date().toISOString();
-const nonce = crypto.randomBytes(16).toString("hex");
-const body = JSON.stringify({ amount_usd_cents: 345, corridor: "th_promptpay" });
+const nonce = crypto.randomBytes(32).toString("hex"); // 64 hex chars
+const body = JSON.stringify({
+  partner_user_id: "usr_8f3ka92m",
+  amount_usd_cents: 345,
+  corridor: "th_promptpay",
+  kyc_attestation: {
+    verified: true, method: "your_kyc_v2",
+    verified_at: "2026-05-21T13:30:00Z",
+    id_type: "passport", id_country: "IN",
+  },
+  sanctions_attestation: { clean: true, screened_at: "2026-05-21T14:25:00Z" },
+});
 const bodyHash = crypto.createHash("sha256").update(body).digest("hex");
 
 const canonical = [method, path, timestamp, nonce, bodyHash].join("\n") + "\n";
-const signature = crypto.createHmac("sha256", secret).update(canonical).digest("base64");
+const signature = crypto.createHmac("sha256", SECRET).update(canonical).digest("base64");
 
-const res = await fetch(ZENNOPAY_HOST + path, {
+const res = await fetch(BASE_URL + path, {
   method,
   headers: {
-    "X-Zennopay-Key-Id": "acme_sandbox_2026q2",
+    "X-Zennopay-Key-Id": KEY_ID,
     "X-Zennopay-Timestamp": timestamp,
     "X-Zennopay-Nonce": nonce,
     "X-Zennopay-Signature": signature,
+    "Idempotency-Key": crypto.randomUUID(),
     "Content-Type": "application/json",
   },
   body,
 });
+const { intent_id, session_token, session_expires_at } = await res.json();
 ```
 </CodeGroup>
 
-You should receive a `200 OK` with an `intent_id`:
+You should receive a `201 Created`. The response carries the **`session_token`**
+(and its expiry) alongside the intent — there is no second call to mint one:
 
 ```json
 {
   "intent_id": "zp_AbCd1234EfGh5678",
   "status": "created",
   "amount_usd_cents": 345,
-  "corridor": "th_promptpay"
+  "corridor": "th_promptpay",
+  "session_token": "zpst_9b1f…",
+  "session_expires_at": 1716305700,
+  "created_at": "2026-05-21T14:30:00Z"
 }
 ```
 
-## 3. Mint a session JWT
+Return `intent_id` and `session_token` to your app. See
+[Build your session endpoint](/payments/session-endpoint) for a complete
+Node.js route.
 
-Sign a JWT with your **RS256 private key** that authorizes one user to
-complete one intent. The session expires in 10 minutes max.
+## 3. Present the PaymentSheet
 
-```json
-{
-  "iss": "https://api.your-domain.com",
-  "aud": "zennopay-checkout",
-  "sub": "your_user_id_xyz",
-  "iat": 1716305400,
-  "exp": 1716305700,
-  "jti": "0190a8b3-4c5d-7e6f-8a9b-c0d1e2f3a4b5",
-  "zennopay:intent_id": "zp_AbCd1234EfGh5678",
-  "zennopay:amount_usd_cents": 345,
-  "zennopay:corridor": "th_promptpay",
-  "zennopay:kyc_attestation": {
-    "verified": true,
-    "method": "your_kyc_v2",
-    "verified_at": "2026-05-21T13:30:00Z"
-  },
-  "zennopay:sanctions_attestation": {
-    "clean": true,
-    "screened_at": "2026-05-21T14:25:00Z"
-  }
-}
-```
-
-Full claim documentation is in [Authentication → JWT claims](/authentication#client-session-jwt).
-
-## 4. Present the PaymentSheet
-
-Pass the `intent_id` and session JWT to the Zennopay
-[PaymentSheet](/payments/overview) on the user's device. The SDK renders the whole
-pay experience natively, in-process — scan → amount + FX quote → slide-to-pay
-→ result — and delivers one typed `PaymentResult` to your callback. No
-browser, no redirect, no URL scheme.
+Pass the `intent_id` and `session_token` to the Zennopay
+[PaymentSheet](/payments/overview) on the user's device. The SDK renders the
+whole pay experience natively, in-process — scan → amount + FX quote →
+slide-to-pay → result — and delivers one typed `PaymentResult` to your
+callback. No browser, no redirect, no URL scheme.
 
 <CodeGroup>
 ```swift iOS
 Zennopay.presentCheckout(
   from: viewController,
   intentID: "zp_AbCd1234EfGh5678",
-  sessionJWT: "eyJhbGciOi..."
+  sessionToken: "zpst_9b1f..."
 ) { result in
   // .completed / .canceled / .failed
 }
@@ -154,7 +149,7 @@ Zennopay.presentCheckout(
 Zennopay.presentCheckout(
   activity = this,
   intentId = "zp_AbCd1234EfGh5678",
-  sessionJwt = "eyJhbGciOi...",
+  sessionToken = "zpst_9b1f...",
 ) { result ->
   // Completed / Canceled / Failed
 }
@@ -164,7 +159,7 @@ Zennopay.presentCheckout(
 final result = await Zennopay.presentSheet(
   context: context,
   intentId: 'zp_AbCd1234EfGh5678',
-  sessionJwt: 'eyJhbGciOi...',
+  sessionToken: 'zpst_9b1f...',
 );
 ```
 
@@ -172,7 +167,7 @@ final result = await Zennopay.presentSheet(
 const { presentSheet } = useZennopay();
 const result = await presentSheet({
   intentId: 'zp_AbCd1234EfGh5678',
-  sessionJwt: 'eyJhbGciOi...',
+  sessionToken: 'zpst_9b1f...',
 });
 ```
 </CodeGroup>
@@ -190,18 +185,40 @@ refresh, theming, testing):
   <Card title="Test your integration" icon="vial" href="/payments/testing" />
 </CardGroup>
 
-## 5. Receive the webhook
+## 4. Receive the webhook
 
 After the payment settles (or fails), Zennopay POSTs a signed webhook to your
 configured endpoint. See [Webhooks](/api-reference/webhooks) for the payload
 shape and signature verification steps.
+
+## Reference partner starter
+
+The reference
+[`zennopay-partner-starter`](https://github.com/Zennopay/zennopay-partner-starter)
+(**v0.2.0+**) ships this exact flow — a runnable Express backend that's
+**HMAC-only**, with no key pair. It reads the same three environment variables:
+
+```bash
+ZENNOPAY_HMAC_KEY_ID=acme_sandbox_2026q2
+ZENNOPAY_HMAC_SECRET=<your_secret>
+ZENNOPAY_BASE_URL=https://api.sandbox.zennopay.in
+```
+
+<Note>
+  **Upgrading from a pre-0.2.0 starter?** Model B removes the RSA session-signing
+  key entirely. Delete `session_signing_key.pem`, drop the `JWT_ISS` / `kid` /
+  JWKS wiring, and stop minting session JWTs — read `session_token` straight off
+  the create response instead. Only migrate to
+  [Model A](/advanced/self-signed-sessions) if you have a hard requirement to
+  self-sign.
+</Note>
 
 ## Common errors
 
 | HTTP | `error.code` | Likely cause |
 |---|---|---|
 | 401 | `authentication_failed` | Bad HMAC signature, expired timestamp, replayed nonce, or IP not in allowlist |
-| 401 | `jwt_invalid` | JWT signature, audience, expiry, or `jti` (replay) check failed |
+| 400 | `validation_failed` | Missing `kyc_attestation` / `sanctions_attestation`, or a malformed body |
 | 400 | `invalid_corridor` | Corridor must be `th_promptpay` or `vn_vietqr` |
 | 422 | `amount_below_minimum` | Minimum transaction value not met for the corridor |
 

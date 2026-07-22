@@ -9,10 +9,10 @@ render the list your way. What you don't have to build is the **receipt** — th
 authoritative, branded detail view for a single past payment, with its *live*
 status (still pending, captured, failed, or refunded).
 
-When a user taps a history row, mint a short-lived **receipt token** and hand it
-to the SDK's `presentReceipt`. The SDK fetches the authoritative receipt from
-Zennopay, renders it natively, and — if the payment is still settling — polls it
-to a terminal state in place.
+When a user taps a history row, fetch a short-lived **receipt token** from
+Zennopay (one HMAC-signed call) and hand it to the SDK's `presentReceipt`. The
+SDK fetches the authoritative receipt from Zennopay, renders it natively, and —
+if the payment is still settling — polls it to a terminal state in place.
 
 <Frame caption="The authoritative Zennopay receipt, reopened from a history row in the sample wallet app.">
   <img src="/images/sdk-demo/receipt.png" width="280" alt="The Zennopay receipt screen: status, amount paid, USD debited, merchant, masked destination account, transaction ID, and timestamp." />
@@ -36,9 +36,10 @@ sequenceDiagram
     participant BE as Your backend
     participant ZP as Zennopay API
 
-    U->>App: Tap a row in your history list
-    App->>BE: POST /receipt-token { user_id }
-    BE->>BE: mint RS256 receipt JWT<br/>(aud: zennopay-receipt, ≤15 min, read-only)
+    U->>App: Tap a row (an intent id) in your history list
+    App->>BE: POST /receipt-token { intent_id }
+    BE->>ZP: POST /v1/payment_intents/:id/receipt_token (HMAC, no body)
+    ZP-->>BE: { receipt_token, receipt_token_expires_at }
     BE-->>App: { receipt_token, expires_at }
     App->>App: Zennopay.presentReceipt(intentId, receiptToken)
     App->>ZP: GET /v1/payment_intents/:id/receipt (Bearer receiptToken)
@@ -47,86 +48,74 @@ sequenceDiagram
     App-->>U: Receipt (captured / failed / refunded)
 ```
 
-The receipt token is minted **on demand**, only when the user opens a specific
+The receipt token is fetched **on demand**, only when the user opens a specific
 receipt — not ahead of time for the whole list.
 
 ## The receipt token
 
 A receipt token is a **distinct credential** from the
-[session JWT](/payments/session-endpoint) you mint to *make* a payment. You sign
-it with the **same RS256 private key** (Zennopay verifies both against your
-[JWKS](/authentication#jwks-endpoint-requirements)), but its audience, scope, and
-lifetime are different: a session JWT authorizes one debit on one intent; a
-receipt token only *reads* a receipt.
+[session token](/payments/session-endpoint) you use to *make* a payment. Like
+the session token, **Zennopay mints it** — you request one with a single
+HMAC-signed call to `POST /v1/payment_intents/{intent_id}/receipt_token` (no
+body). Its scope, power, and lifetime are different: a session token authorizes
+one debit on one intent; a receipt token only *reads* a receipt.
 
-| Claim | Value |
+| Property | Value |
 |---|---|
-| `iss` | Your registered issuer URL (same as your session JWTs) |
-| `aud` | `"zennopay-receipt"` — **not** `zennopay-checkout` |
-| `sub` | The opaque `partner_user_id` whose receipt this is |
-| `iat` / `exp` | Now / now + ≤ 900s. Keep it ≤ 15 minutes |
+| Minted by | Zennopay, on `POST /v1/payment_intents/{intent_id}/receipt_token` (HMAC-signed, no body) |
+| Scoped to | The stored intent's `partner_user_id` (Zennopay derives it — you don't send it) — **not** intent-bound |
+| Lifetime | `receipt_token_expires_at` — TTL 300s |
 
 <Note>
-  **How a receipt token differs from a session JWT:**
+  **How a receipt token differs from a session token:**
 
+  - **Minted per intent, scoped to a user.** You mint it by naming an intent you
+    own; Zennopay derives the user (`sub`) from that stored intent, so the token
+    can open any of *that user's* receipts within its window — but never another
+    user's.
   - **Read-only.** It authorizes `GET /receipt` and nothing else — it can never
     confirm, cancel, or move money.
-  - **Reusable.** No single-use `jti`. The SDK reuses the one token to poll a
-    pending receipt to its terminal state, so you don't re-mint on every poll.
-  - **Not intent-bound.** It carries no `zennopay:intent_id` claim. It's scoped
-    to the **user** (`sub`), so the same token can open any of *that user's*
-    receipts within its window — but never another user's.
-  - **No attestations.** KYC/sanctions claims are a pay-time contract; reopening
-    a receipt doesn't move money, so they aren't required.
+  - **Reusable.** The SDK reuses the one token to poll a pending receipt to its
+    terminal state, so you don't re-mint on every poll.
+  - **No attestations.** KYC/sanctions are a pay-time contract; reopening a
+    receipt doesn't move money, so they aren't required.
 </Note>
 
-## Mint the receipt token
+## Fetch the receipt token
 
 Add one route to your [session endpoint](/payments/session-endpoint) backend. It
-mints an RS256 receipt token scoped to the signed-in user. No dependencies
-beyond `node:crypto`.
+makes one HMAC-signed call to Zennopay — **no body** — for the intent id of the
+tapped row, then returns the token. Reuse the same `hmacHeaders` helper from
+your session endpoint; no dependencies beyond `node:crypto`.
 
 ```ts
-import crypto from "node:crypto";
-import fs from "node:fs";
-
-const JWT_ISS = "https://api.your-domain.com";            // your registered issuer
-const JWT_PRIVATE_PEM = fs.readFileSync("./keys/session_signing_key.pem", "utf8");
-
-function b64url(input: string | Buffer) {
-  return Buffer.from(input).toString("base64url");
-}
-
-function mintReceiptToken(user: User) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", kid: "your-rsa-key-1", typ: "JWT" };
-  const payload = {
-    iss: JWT_ISS,
-    aud: "zennopay-receipt",   // NOT zennopay-checkout — read-only receipt scope
-    sub: user.id,              // your OPAQUE user id — scopes the token to this user
-    iat: now,
-    exp: now + 900,            // 15 minutes; reusable within the window
-  };
-  const signingInput = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
-  const signature = crypto
-    .createSign("RSA-SHA256")
-    .update(signingInput)
-    .sign(JWT_PRIVATE_PEM);
-  return { token: `${signingInput}.${signature.toString("base64url")}`, expiresAt: payload.exp };
-}
-
-// POST /receipt-token — called when the user taps a history row.
+// POST /receipt-token — called when the user taps a history row, with that
+// row's intent id. Confirm the user owns that intent before minting.
 app.post("/receipt-token", async (req, res) => {
-  const user = await requireAuthedUser(req); // your app auth
-  const { token, expiresAt } = mintReceiptToken(user);
-  res.json({ receipt_token: token, expires_at: expiresAt });
+  const user = await requireAuthedUser(req);   // your app auth
+  const { intent_id } = req.body;
+  assertUserOwnsIntent(user, intent_id);       // your own record of the intent
+
+  const path = `/v1/payment_intents/${intent_id}/receipt_token`;
+  const resp = await fetch(`${ZENNOPAY_BASE}${path}`, {
+    method: "POST",
+    headers: hmacHeaders("POST", path, ""),    // same helper; empty body
+  });
+  if (resp.status !== 200) {
+    // 404 here means the intent isn't yours (or doesn't exist) — same response.
+    return res.status(502).json({ error: "receipt_token_failed" });
+  }
+
+  // Zennopay minted the receipt token — pass it straight through.
+  const { receipt_token, receipt_token_expires_at } = await resp.json();
+  res.json({ receipt_token, expires_at: receipt_token_expires_at });
 });
 ```
 
 <Note>
   The reference [`zennopay-partner-starter`](/payments/session-endpoint#receipt-tokens)
-  (v0.1.1+) ships this route as `POST /receipt-token { user_id } → { receipt_token,
-  expires_at }`. Use it as the mint reference.
+  (v0.2.0+) ships this route as `POST /receipt-token { intent_id } → { receipt_token,
+  expires_at }`. Use it as the reference.
 </Note>
 
 ## Fetch is the SDK's job
@@ -164,8 +153,9 @@ polled.
 
     func openReceipt(for intentID: String) {
         Task { @MainActor in
-            // Mint a receipt token for the signed-in user.
-            let tok: ReceiptToken = try await api.post("/receipt-token")
+            // Mint a receipt token for the tapped row's intent.
+            let tok: ReceiptToken = try await api.post(
+                "/receipt-token", ["intent_id": intentID])
 
             Zennopay.presentReceipt(
                 from: self,
@@ -174,7 +164,8 @@ polled.
                 refreshReceiptToken: { _ in
                     // Called if the token expires while polling a pending
                     // receipt. Re-mint and return a fresh one, or nil.
-                    let refreshed: ReceiptToken? = try? await api.post("/receipt-token")
+                    let refreshed: ReceiptToken? = try? await api.post(
+                        "/receipt-token", ["intent_id": intentID])
                     return refreshed?.receiptToken
                 },
                 config: .production,     // .sandbox for testing
@@ -195,7 +186,7 @@ polled.
 
     fun openReceipt(activity: ComponentActivity, intentId: String) {
         lifecycleScope.launch {
-            val tok = api.post<ReceiptToken>("/receipt-token")
+            val tok = api.post<ReceiptToken>("/receipt-token", mapOf("intent_id" to intentId))
 
             Zennopay.presentReceipt(
                 activity,
@@ -203,8 +194,9 @@ polled.
                 tok.receiptToken,
                 refreshReceiptToken = {
                     // Re-mint if the token expires mid-poll; return null to stop.
-                    runCatching { api.post<ReceiptToken>("/receipt-token").receiptToken }
-                        .getOrNull()
+                    runCatching {
+                        api.post<ReceiptToken>("/receipt-token", mapOf("intent_id" to intentId)).receiptToken
+                    }.getOrNull()
                 },
                 config = ZennopayConfig.PRODUCTION,   // .SANDBOX for testing
                 appearance = appearance,              // optional theming
@@ -221,7 +213,7 @@ polled.
     import 'package:zennopay_flutter/zennopay_flutter.dart';
 
     Future<void> openReceipt(String intentId) async {
-      final tok = await api.receiptToken(); // POST /receipt-token
+      final tok = await api.receiptToken(intentId); // POST /receipt-token { intent_id }
 
       await Zennopay.presentReceipt(
         intentId: intentId,
@@ -238,7 +230,7 @@ polled.
     import { presentReceipt } from "@zennopay/react-native";
 
     async function openReceipt(intentId: string) {
-      const { receipt_token } = await api.post("/receipt-token");
+      const { receipt_token } = await api.post("/receipt-token", { intent_id: intentId });
 
       await presentReceipt({ intentId, receiptToken: receipt_token });
       // Resolves when the user closes the receipt.

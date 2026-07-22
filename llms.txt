@@ -1,42 +1,48 @@
 # Zennopay Documentation
 
-> Zennopay is a B2B API for cross-border QR payments in Southeast Asia. Partner fintechs embed the Zennopay PaymentSheet — a native, in-process pay experience (QR scan → amount + FX quote → slide-to-pay → result) — so their users can pay Thai PromptPay and Vietnamese VietQR merchants from a USD wallet balance. Partners pre-fund a USD FBO account; each payment draws it down and the local-currency payout rides local rails. Auth is two-layer: HMAC-signed server-to-server calls plus short-lived, intent-bound RS256 session JWTs. Every page below is also available as plain Markdown by appending `.md` to its URL.
+> Zennopay is a B2B API for cross-border QR payments in Southeast Asia. Partner fintechs embed the Zennopay PaymentSheet — a native, in-process pay experience (QR scan → amount + FX quote → slide-to-pay → result) — so their users can pay Thai PromptPay and Vietnamese VietQR merchants from a USD wallet balance. Partners pre-fund a USD FBO account; each payment draws it down and the local-currency payout rides local rails. Partner auth is HMAC-only (Model B): partners HMAC-sign server-to-server calls, and Zennopay mints a short-lived, intent-bound session token that it returns from intent creation (re-minted via POST /v1/payment_intents/{intent_id}/session). There is no partner key pair, iss/kid, or JWKS to manage. Partners who must self-sign their own RS256 session tokens can opt into Model A, which is secondary. Every page below is also available as plain Markdown by appending `.md` to its URL.
 
 ## Get started
 
 - [Zennopay Docs — home](https://docs.zennopay.in/introduction.md): Start here — what Zennopay does, the product tiles for each integration journey, and how a payment flows end to end.
-- [Quickstart](https://docs.zennopay.in/quickstart.md): Stand up a sandbox integration — sign your first HMAC call, mint a session JWT, present the PaymentSheet.
+- [Quickstart](https://docs.zennopay.in/quickstart.md): Stand up a sandbox integration — sign your first HMAC call, read back the Zennopay-minted session token, present the PaymentSheet. HMAC-only, no key pair.
 - [How Zennopay works](https://docs.zennopay.in/how-zennopay-works.md): One diagram of the whole system — apps, money, and rails — with links to go deeper.
 
 ## Make payments
 
 - [Zennopay PaymentSheet overview](https://docs.zennopay.in/payments/overview.md): The native in-process payment UI — flow screenshots, platform matrix, sequence diagram, and what you don't have to build.
-- [Build your session endpoint](https://docs.zennopay.in/payments/session-endpoint.md): The partner-backend contract — create an intent (HMAC) and mint the session JWT, with a complete Node.js reference implementation and security notes.
+- [Build your session endpoint](https://docs.zennopay.in/payments/session-endpoint.md): The partner-backend contract — create an intent (HMAC-signed, with KYC + sanctions attestations) and return the session token Zennopay mints, with a complete Node.js reference implementation, the re-mint refresh route, and security notes.
 - [iOS](https://docs.zennopay.in/payments/ios.md): SwiftPM install, camera usage string, `Zennopay.presentCheckout` quickstart, appearance theming, Simulator testing, hosted-checkout migration.
 - [Android](https://docs.zennopay.in/payments/android.md): Maven install, Compose launcher and one-shot `presentCheckout` patterns, appearance theming, testing, hosted-checkout migration.
 - [Flutter](https://docs.zennopay.in/payments/flutter.md): `zennopay_flutter` install, `Zennopay.presentSheet` returning a `Future<PaymentResult>` (with first-class `Pending`), appearance, analytics hook.
 - [React Native](https://docs.zennopay.in/payments/react-native.md): `@zennopay/react-native` native bridge — install, native SDK linking, `useZennopay()` hook, `native_sdk_unavailable` troubleshooting.
 - [Test your integration](https://docs.zennopay.in/payments/testing.md): The sandbox loops to run before release — paste-QR without a camera, end-to-end to `captured`, fail-fast token checks, limit-blocked payments, pending reconciliation.
-- [Reopen a receipt](https://docs.zennopay.in/payments/reopen-receipt.md): You keep your own transaction-history list; mint a read-only, reusable, user-scoped receipt token (`aud: zennopay-receipt`) and call `presentReceipt` to reopen the authoritative Zennopay receipt with its live status — pending-poll, refunded state, and a cross-user 404 with no existence leak.
+- [Reopen a receipt](https://docs.zennopay.in/payments/reopen-receipt.md): You keep your own transaction-history list; fetch a read-only, reusable, user-scoped receipt token (Zennopay-minted via POST /v1/payment_intents/{id}/receipt_token — HMAC, no body, `sub` derived from the stored intent) and call `presentReceipt` to reopen the authoritative Zennopay receipt with its live status — pending-poll, refunded state, and a cross-user 404 with no existence leak.
 
 ## Fundamentals
 
-- [Authentication](https://docs.zennopay.in/authentication.md): The dual-layer auth model — server-to-server HMAC signing and the RS256 client session JWT, with claims, JWKS requirements, and test vectors.
+- [Authentication](https://docs.zennopay.in/authentication.md): HMAC-only partner auth — server-to-server HMAC signing, and the Zennopay-minted client session token (returned from intent creation, re-minted via /session), with test vectors. No partner key pair.
 - [Funds flow](https://docs.zennopay.in/concepts/funds-flow.md): USD pre-fund → FBO custody → per-payment drawdown → local-rail payout, with failure/refund handling and per-user limits.
 - [Corridors](https://docs.zennopay.in/concepts/corridors.md): Supported corridors — Thailand PromptPay and Vietnam VietQR — and their properties.
 - [Settlement](https://docs.zennopay.in/concepts/settlement.md): Settlement cadence, reconciliation reports, and statements.
 - [Per-user limits](https://docs.zennopay.in/fundamentals/limits.md): The corridor-specific regulatory limits Zennopay enforces per end user, and what enforcement looks like in the SDK.
+
+## Advanced
+
+- [Bring-your-own signing key (Model A)](https://docs.zennopay.in/advanced/self-signed-sessions.md): Optional, secondary. Self-sign your own RS256 session tokens instead of letting Zennopay mint them — RS256 claims, JWKS hosting, and the verification order. Most partners should use the default HMAC-only flow.
 
 ## API Reference
 
 - [API overview](https://docs.zennopay.in/api-reference/overview.md): REST conventions, error envelope, idempotency.
 - [Environments](https://docs.zennopay.in/api-reference/environments.md): Production and sandbox base URLs and how keys map to them.
 - [Playground](https://docs.zennopay.in/api-reference/playground.md): Interactive request builder against the sandbox.
-- [Create a payment intent](https://docs.zennopay.in/api-reference/payment-intents/create.md): `POST /v1/payment_intents` — request, response, and errors.
+- [Create a payment intent](https://docs.zennopay.in/api-reference/payment-intents/create.md): `POST /v1/payment_intents` — HMAC-signed, carries the KYC + sanctions attestations, and returns `session_token` + `session_expires_at`.
+- [Re-mint session token](https://docs.zennopay.in/api-reference/payment-intents/session.md): `POST /v1/payment_intents/{id}/session` — HMAC-signed re-mint of a fresh `session_token` for an existing intent; drives the SDK's refreshSession hook.
 - [Get a payment intent](https://docs.zennopay.in/api-reference/payment-intents/get.md): `GET /v1/payment_intents/{id}` — status lifecycle.
-- [Get receipt](https://docs.zennopay.in/api-reference/payment-intents/receipt.md): `GET /v1/payment_intents/{id}/receipt` — authoritative receipt with live status, authorized by a receipt-token bearer; cross-user 404 with no existence leak.
+- [Mint receipt token](https://docs.zennopay.in/api-reference/payment-intents/receipt-token.md): `POST /v1/payment_intents/{id}/receipt_token` — HMAC-signed, no body; returns `receipt_token` + `receipt_token_expires_at` (unix seconds, TTL 300s). Partner must own the intent; cross-partner/unknown id → identical 404. `sub` derived from the stored intent's `partner_user_id`.
+- [Get receipt](https://docs.zennopay.in/api-reference/payment-intents/receipt.md): `GET /v1/payment_intents/{id}/receipt` — authoritative receipt with live status, authorized by a Zennopay-minted receipt-token bearer; cross-user 404 with no existence leak.
 - [Webhooks](https://docs.zennopay.in/api-reference/webhooks.md): Event types, payload shape, and signature verification.
-- [JWT inspector](https://docs.zennopay.in/api-reference/jwt-inspector.md): Paste a session JWT and validate its claims against the contract.
+- [JWT inspector](https://docs.zennopay.in/api-reference/jwt-inspector.md): Model A only — decode a self-signed session JWT and validate its claims against the contract.
 
 ## Resources
 

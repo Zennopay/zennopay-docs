@@ -32,10 +32,10 @@ settlement.
 
 ## Choosing a corridor
 
-The corridor is locked when the payment intent is created and is embedded in
-the session JWT. Your app picks the corridor based on which country the user
-is paying in (typically inferred from the QR code itself; partner UX picks
-the corridor *before* the user scans).
+The corridor is locked when the payment intent is created, and the
+Zennopay-minted session token is bound to it. Your app picks the corridor based
+on which country the user is paying in (typically inferred from the QR code
+itself; partner UX picks the corridor *before* the user scans).
 
 ## Roadmap
 

@@ -3,7 +3,14 @@ title: "JWT inspector"
 description: "Paste a partner-minted Zennopay session JWT and see the decoded header + claims. Runs entirely client-side — your token never leaves your machine."
 ---
 
-When a JWT-authenticated call returns 401, the fastest path to a fix is
+<Note>
+  **This tool is for [Model A](/advanced/self-signed-sessions) only.** In the
+  default flow (Model B) the session token is minted by Zennopay and opaque to
+  you — there's nothing for you to inspect or self-verify. The inspector is
+  useful only if you self-sign your own RS256 session JWTs.
+</Note>
+
+When a self-signed session JWT returns 401, the fastest path to a fix is
 decoding the token and diffing the claims against what Zennopay expects.
 The inspector below does that locally in your browser — **no signature
 verification, no network request**. It's a debugging tool, not a security
@@ -13,7 +20,7 @@ boundary.
   Treat any JWT you paste here as compromised. The inspector itself
   doesn't transmit your token, but pasting a live session JWT anywhere is
   a habit worth not building. For real verification, see
-  [Authentication §JWT verification](/authentication).
+  [Model A → verification order](/advanced/self-signed-sessions#verification-order).
 </Warning>
 
 ## Inspector
@@ -122,4 +129,4 @@ server-only reasons:
    than the one that owns the intent.
 
 For the full server-side ruleset, see
-[Authentication §JWT verification](/authentication).
+[Model A → verification order](/advanced/self-signed-sessions#verification-order).
