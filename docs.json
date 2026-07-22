@@ -89,6 +89,7 @@
                   "api-reference/payment-intents/create",
                   "api-reference/payment-intents/session",
                   "api-reference/payment-intents/get",
+                  "api-reference/payment-intents/receipt-token",
                   "api-reference/payment-intents/receipt"
                 ]
               },

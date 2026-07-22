@@ -118,51 +118,36 @@
         }
       }
     },
-    "/v1/receipt_tokens": {
+    "/v1/payment_intents/{intent_id}/receipt_token": {
       "post": {
         "summary": "Mint a receipt token",
-        "description": "Mint a read-only, reusable, user-scoped receipt token so the SDK can reopen the authoritative receipt for a past payment. Server-to-server only; requires HMAC. Zennopay mints the token; the SDK sends it as a bearer credential on GET /receipt. Not intent-bound — scoped to the `partner_user_id` you supply.",
+        "description": "Mint a read-only, reusable receipt token so the SDK can reopen the authoritative receipt for a past payment. Server-to-server only; requires HMAC and **no request body**. The partner identified by the HMAC key must own `{intent_id}`; a cross-partner or unknown intent id returns an identical `404` with no existence leak. The token's `sub` is derived from the stored intent's `partner_user_id` (not supplied by the caller), so the token is scoped to that user and can open any of that user's receipts — but no one else's.",
         "operationId": "mintReceiptToken",
         "tags": ["Payment Intents"],
         "security": [{ "hmacAuth": [] }],
         "parameters": [
+          { "$ref": "#/components/parameters/IntentIdPath" },
           { "$ref": "#/components/parameters/HmacKeyId" },
           { "$ref": "#/components/parameters/HmacTimestamp" },
           { "$ref": "#/components/parameters/HmacNonce" },
           { "$ref": "#/components/parameters/HmacSignature" }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["partner_user_id"],
-                "additionalProperties": false,
-                "properties": {
-                  "partner_user_id": { "type": "string", "description": "The opaque user whose receipts this token may open." }
-                }
-              },
-              "example": { "partner_user_id": "usr_8f3ka92m" }
-            }
-          }
-        },
         "responses": {
-          "201": {
+          "200": {
             "description": "Receipt token minted",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ReceiptToken" },
                 "example": {
                   "receipt_token": "zprt_2f9c…",
-                  "expires_at": 1716306300
+                  "receipt_token_expires_at": 1716306300
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/ValidationFailed" },
           "401": { "$ref": "#/components/responses/AuthenticationFailed" },
-          "403": { "$ref": "#/components/responses/AuthorizationFailed" }
+          "403": { "$ref": "#/components/responses/AuthorizationFailed" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -205,7 +190,7 @@
     "/v1/payment_intents/{intent_id}/receipt": {
       "get": {
         "summary": "Get receipt",
-        "description": "Fetch the authoritative, branded receipt for a payment intent with its live status. Called by the Zennopay SDK inside `presentReceipt`; partners usually don't call it directly. **Receipt-token only** — authorize with a Zennopay-minted receipt token (from POST /v1/receipt_tokens) sent as a bearer credential. The token is read-only, reusable, and scoped to a user (not intent-bound). A receipt token scoped to one user returns `404` for any intent that isn't that user's, with no existence leak.",
+        "description": "Fetch the authoritative, branded receipt for a payment intent with its live status. Called by the Zennopay SDK inside `presentReceipt`; partners usually don't call it directly. **Receipt-token only** — authorize with a Zennopay-minted receipt token (from POST /v1/payment_intents/{intent_id}/receipt_token) sent as a bearer credential. The token is read-only, reusable, and scoped to a user (not intent-bound). A receipt token scoped to one user returns `404` for any intent that isn't that user's, with no existence leak.",
         "operationId": "getReceipt",
         "tags": ["Payment Intents"],
         "security": [{ "receiptToken": [] }],
@@ -309,7 +294,7 @@
       "receiptToken": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Zennopay-minted receipt token for reopening a receipt. Returned as `receipt_token` from POST /v1/receipt_tokens. Lifetime ≤ 15 minutes, read-only (authorizes only GET /receipt), reusable, and scoped to a user (not intent-bound) — it can open any of that user's receipts but no one else's."
+        "description": "Zennopay-minted receipt token for reopening a receipt. Returned as `receipt_token` from POST /v1/payment_intents/{intent_id}/receipt_token. Audience `zennopay-receipt`, TTL 300s, read-only (authorizes only GET /receipt), reusable, and scoped to a user (not intent-bound) — it can open any of that user's receipts but no one else's."
       }
     },
     "parameters": {
@@ -423,11 +408,11 @@
       },
       "ReceiptToken": {
         "type": "object",
-        "required": ["receipt_token", "expires_at"],
+        "required": ["receipt_token", "receipt_token_expires_at"],
         "description": "A read-only, reusable, user-scoped receipt token.",
         "properties": {
-          "receipt_token": { "type": "string", "description": "Zennopay-minted bearer receipt token for the SDK's presentReceipt.", "example": "zprt_2f9c…" },
-          "expires_at": { "type": "integer", "description": "Unix epoch seconds at which the token stops verifying.", "example": 1716306300 }
+          "receipt_token": { "type": "string", "description": "Zennopay-minted bearer receipt token for the SDK's presentReceipt. Audience `zennopay-receipt`, TTL 300s.", "example": "zprt_2f9c…" },
+          "receipt_token_expires_at": { "type": "integer", "description": "Unix epoch seconds at which the token stops verifying.", "example": 1716306300 }
         }
       },
       "CreatedPaymentIntent": {

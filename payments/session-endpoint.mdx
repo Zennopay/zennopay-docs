@@ -249,15 +249,16 @@ with one more HMAC-signed call.
 
 | | Session token | Receipt token |
 |---|---|---|
-| Scope | One intent | The user (`partner_user_id`) — **not** intent-bound |
-| Lifetime | short (a few min) | ≤ 15 min |
+| Scope | One intent | The user (derived from the intent's `partner_user_id`) — **not** intent-bound |
+| Lifetime | short (a few min) | TTL 300s |
 | Use | Single-use (consumed by confirm) | **Reusable** — polls a pending receipt |
 | Power | Authorizes one debit | **Read-only** — only `GET /receipt` |
-| Minted by | Zennopay, on intent create | Zennopay, on `POST /v1/receipt_tokens` |
+| Minted by | Zennopay, on intent create | Zennopay, on `POST /v1/payment_intents/{id}/receipt_token` |
 
-Request one on demand when the user taps a history row. The reference
+Request one on demand when the user taps a history row (you pass that row's
+intent id; Zennopay derives the user from the stored intent). The reference
 [`zennopay-partner-starter`](https://github.com/Zennopay/zennopay-partner-starter)
-(v0.2.0+) ships the route as `POST /receipt-token { user_id } → { receipt_token,
+(v0.2.0+) ships the route as `POST /receipt-token { intent_id } → { receipt_token,
 expires_at }`. The full flow — request, `presentReceipt`, pending-poll, refunded
 state, and the cross-user `404` — is in
 [Reopen a receipt](/payments/reopen-receipt).

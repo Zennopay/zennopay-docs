@@ -13,8 +13,8 @@ directly.
 
 <ParamField header="Authorization" type="string" required>
   `Bearer <receiptToken>` — a Zennopay-minted receipt token (from
-  [`POST /v1/receipt_tokens`](/payments/reopen-receipt#fetch-the-receipt-token)),
-  scoped to the opaque user ID whose receipt this is. Read-only, reusable, and
+  [`POST /v1/payment_intents/{intent_id}/receipt_token`](/api-reference/payment-intents/receipt-token)),
+  scoped to the user whose receipt this is. Read-only, reusable, and
   **not** intent-bound. See
   [Reopen a receipt → the receipt token](/payments/reopen-receipt#the-receipt-token).
 </ParamField>

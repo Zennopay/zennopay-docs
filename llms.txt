@@ -17,7 +17,7 @@
 - [Flutter](https://docs.zennopay.in/payments/flutter.md): `zennopay_flutter` install, `Zennopay.presentSheet` returning a `Future<PaymentResult>` (with first-class `Pending`), appearance, analytics hook.
 - [React Native](https://docs.zennopay.in/payments/react-native.md): `@zennopay/react-native` native bridge — install, native SDK linking, `useZennopay()` hook, `native_sdk_unavailable` troubleshooting.
 - [Test your integration](https://docs.zennopay.in/payments/testing.md): The sandbox loops to run before release — paste-QR without a camera, end-to-end to `captured`, fail-fast token checks, limit-blocked payments, pending reconciliation.
-- [Reopen a receipt](https://docs.zennopay.in/payments/reopen-receipt.md): You keep your own transaction-history list; fetch a read-only, reusable, user-scoped receipt token (Zennopay-minted via POST /v1/receipt_tokens) and call `presentReceipt` to reopen the authoritative Zennopay receipt with its live status — pending-poll, refunded state, and a cross-user 404 with no existence leak.
+- [Reopen a receipt](https://docs.zennopay.in/payments/reopen-receipt.md): You keep your own transaction-history list; fetch a read-only, reusable, user-scoped receipt token (Zennopay-minted via POST /v1/payment_intents/{id}/receipt_token — HMAC, no body, `sub` derived from the stored intent) and call `presentReceipt` to reopen the authoritative Zennopay receipt with its live status — pending-poll, refunded state, and a cross-user 404 with no existence leak.
 
 ## Fundamentals
 
@@ -39,6 +39,7 @@
 - [Create a payment intent](https://docs.zennopay.in/api-reference/payment-intents/create.md): `POST /v1/payment_intents` — HMAC-signed, carries the KYC + sanctions attestations, and returns `session_token` + `session_expires_at`.
 - [Re-mint session token](https://docs.zennopay.in/api-reference/payment-intents/session.md): `POST /v1/payment_intents/{id}/session` — HMAC-signed re-mint of a fresh `session_token` for an existing intent; drives the SDK's refreshSession hook.
 - [Get a payment intent](https://docs.zennopay.in/api-reference/payment-intents/get.md): `GET /v1/payment_intents/{id}` — status lifecycle.
+- [Mint receipt token](https://docs.zennopay.in/api-reference/payment-intents/receipt-token.md): `POST /v1/payment_intents/{id}/receipt_token` — HMAC-signed, no body; returns `receipt_token` + `receipt_token_expires_at` (unix seconds, TTL 300s). Partner must own the intent; cross-partner/unknown id → identical 404. `sub` derived from the stored intent's `partner_user_id`.
 - [Get receipt](https://docs.zennopay.in/api-reference/payment-intents/receipt.md): `GET /v1/payment_intents/{id}/receipt` — authoritative receipt with live status, authorized by a Zennopay-minted receipt-token bearer; cross-user 404 with no existence leak.
 - [Webhooks](https://docs.zennopay.in/api-reference/webhooks.md): Event types, payload shape, and signature verification.
 - [JWT inspector](https://docs.zennopay.in/api-reference/jwt-inspector.md): Model A only — decode a self-signed session JWT and validate its claims against the contract.

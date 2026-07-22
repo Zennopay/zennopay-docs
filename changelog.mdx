@@ -14,7 +14,8 @@ description: "Notable changes to the Zennopay public API and SDKs."
 - **New API:** [`POST /v1/payment_intents/{id}/session`](/api-reference/payment-intents/session)
   re-mints a fresh session token for an existing intent (drives the SDK's
   `refreshSession` hook). Receipt tokens are likewise Zennopay-minted, via
-  `POST /v1/receipt_tokens`.
+  [`POST /v1/payment_intents/{id}/receipt_token`](/api-reference/payment-intents/receipt-token)
+  (HMAC, no body; returns `receipt_token` + `receipt_token_expires_at`).
 - **Rewritten:** [Authentication](/authentication),
   [Quickstart](/quickstart), and
   [Build your session endpoint](/payments/session-endpoint) for the HMAC-only
