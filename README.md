@@ -16,7 +16,6 @@ merchant from a USD wallet balance.
 | `how-zennopay-works.mdx` | One diagram of the whole system, with links to go deeper |
 | `payments/` | Accept payments: PaymentSheet overview, session endpoint, iOS, Android, Flutter, React Native, testing |
 | `authentication.mdx` | HMAC-only partner auth + the Zennopay-minted session token, with test vectors |
-| `advanced/` | Optional, secondary: bring-your-own signing key (Model A) |
 | `concepts/` | Funds flow, corridors, settlement & reconciliation |
 | `fundamentals/` | Per-user corridor limits |
 | `api-reference/` | REST endpoints (Payment Intents, Webhooks) |

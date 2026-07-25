@@ -30,8 +30,7 @@ Server-to-server only; HMAC-signed. See [Authentication](/authentication).
 </ParamField>
 
 <ParamField header="X-Zennopay-Signature" type="string" required>
-  Base64 HMAC-SHA256 of the canonical request string. The body is empty, so the
-  body-hash line of the canonical request is the empty string.
+  Base64 HMAC-SHA256 of the canonical request string over the JSON body below.
 </ParamField>
 
 ## Path parameters
@@ -42,11 +41,26 @@ Server-to-server only; HMAC-signed. See [Authentication](/authentication).
   terminal state (`captured`, `failed`, `expired`, `cancelled`).
 </ParamField>
 
-## Response
+## Body
 
-<ResponseField name="intent_id" type="string">
-  Echoes the path parameter.
-</ResponseField>
+The re-mint carries the same per-payment identity and compliance attestations
+as the original create call — Zennopay mints the fresh token from them.
+
+<ParamField body="partner_user_id" type="string" required>
+  Your opaque user identifier for the paying user. Must match the user the intent
+  was created for.
+</ParamField>
+
+<ParamField body="kyc_attestation" type="object" required>
+  Your per-payment KYC attestation, from your real verification system:
+  `{ verified, method, verified_at, id_type, id_country }`.
+</ParamField>
+
+<ParamField body="sanctions_attestation" type="object" required>
+  Your per-payment sanctions attestation: `{ clean, screened_at }`.
+</ParamField>
+
+## Response
 
 <ResponseField name="session_token" type="string">
   A fresh Zennopay-minted session token for the same intent. Return it to your
@@ -68,7 +82,13 @@ curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents/zp_AbCd1234EfGh5
   -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:35:00Z" \
   -H "X-Zennopay-Nonce: b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef0011" \
-  -H "X-Zennopay-Signature: <base64_hmac_sha256>"
+  -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "partner_user_id": "usr_8f3ka92m",
+    "kyc_attestation": { "verified": true, "method": "your_kyc_v2", "verified_at": "2026-05-21T13:30:00Z", "id_type": "passport", "id_country": "IN" },
+    "sanctions_attestation": { "clean": true, "screened_at": "2026-05-21T14:25:00Z" }
+  }'
 ```
 
 ```bash Production
@@ -76,13 +96,18 @@ curl -X POST https://api.zennopay.in/v1/payment_intents/zp_AbCd1234EfGh5678/sess
   -H "X-Zennopay-Key-Id: acme_prod_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:35:00Z" \
   -H "X-Zennopay-Nonce: b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef0011" \
-  -H "X-Zennopay-Signature: <base64_hmac_sha256>"
+  -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "partner_user_id": "usr_8f3ka92m",
+    "kyc_attestation": { "verified": true, "method": "your_kyc_v2", "verified_at": "2026-05-21T13:30:00Z", "id_type": "passport", "id_country": "IN" },
+    "sanctions_attestation": { "clean": true, "screened_at": "2026-05-21T14:25:00Z" }
+  }'
 ```
 </CodeGroup>
 
 ```json Response
 {
-  "intent_id": "zp_AbCd1234EfGh5678",
   "session_token": "zpst_c4a7…",
   "session_expires_at": 1716306000
 }

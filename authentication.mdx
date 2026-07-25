@@ -3,11 +3,10 @@ title: "Authentication"
 description: "One credential for partners — an HMAC signing secret. Zennopay mints the client session token for you."
 ---
 
-Zennopay's default integration (**Model B**) gives you a single credential to
-manage: an **HMAC signing secret**. Your backend signs every REST call with it.
-When you create a payment intent, Zennopay mints a short-lived **session token**
-and returns it to you — you never generate, sign, publish, or register a key
-pair.
+Zennopay gives you a single credential to manage: an **HMAC signing secret**.
+Your backend signs every REST call with it. When you create a payment intent,
+Zennopay mints a short-lived **session token** and returns it to you — you never
+generate, sign, publish, or register a key pair.
 
 | Layer | Used between | Algorithm | Who holds it |
 |---|---|---|---|
@@ -15,12 +14,9 @@ pair.
 | **Session token** | Partner app → SDK → Zennopay checkout | Zennopay-minted, opaque to you | Your app, in memory, short-lived |
 
 <Note>
-  **No key pair required.** In Model B there is no RS256 keypair to generate, no
+  **No key pair required.** There is no RS256 keypair to generate, no
   `iss`/`kid` to register, no JWKS endpoint to publish, and no session JWT for
-  you to sign. Zennopay issues the session token. If you have a hard requirement
-  to self-sign your own session tokens, see
-  [Advanced: bring-your-own signing key (Model A)](/advanced/self-signed-sessions) —
-  it is strictly optional and secondary.
+  you to sign. Zennopay issues the session token.
 </Note>
 
 ## Server-to-server HMAC
@@ -223,8 +219,8 @@ Your app never holds your HMAC secret. Per payment, it holds a **session token**
 — a short-lived credential scoped to a single intent — which it passes to the
 Zennopay SDK.
 
-In Model B you don't mint this token: **Zennopay does**. When your backend
-creates the payment intent, the response includes:
+You don't mint this token — **Zennopay does**. When your backend creates the
+payment intent, the response includes:
 
 | Field | Meaning |
 |---|---|
@@ -252,15 +248,20 @@ Create the intent with a normal HMAC-signed call. The
 ```
 
 Return `session_token` (and, if you like, `session_expires_at`) to your app,
-which hands it to the [PaymentSheet](/payments/overview).
+which hands it to the [PaymentSheet](/payments/overview). The token is a
+short-lived bearer credential — treat it as opaque and pass it straight
+through; don't parse or depend on its structure.
 
 ### Re-minting a session token
 
 If the session expires mid-flow, don't create a new intent — re-mint a token
-for the **same** intent:
+for the **same** intent. Send the same per-payment identity and attestations you
+sent on create; Zennopay mints a fresh token from them:
 
 ```
 POST /v1/payment_intents/{intent_id}/session   (HMAC-signed)
+
+body: { partner_user_id, kyc_attestation, sanctions_attestation }
 ```
 
 The response is a fresh `session_token` + `session_expires_at`. Zennopay
@@ -347,6 +348,3 @@ Zennopay POSTs a signed webhook with the terminal status
   quarterly, dual-key process above.
 - **Client-held API keys.** The mobile app never holds your HMAC secret; it only
   ever holds a Zennopay-minted session token scoped to one intent.
-- **Partner-signed session tokens by default.** If you specifically need to
-  self-sign, that's [Model A](/advanced/self-signed-sessions) — optional and
-  secondary.

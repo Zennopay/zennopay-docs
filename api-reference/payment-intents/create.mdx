@@ -57,10 +57,9 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
 </ParamField>
 
 <Note>
-  In the default flow (**Model B**) the attestations travel in this body and
-  Zennopay mints the session token. If you self-sign your own tokens
-  ([Model A](/advanced/self-signed-sessions)), the attestations live in the JWT
-  claims instead and are omitted here.
+  The KYC and sanctions attestations travel in this body: Zennopay mints the
+  session token from the intent and will not move money on an intent that
+  doesn't carry them.
 </Note>
 
 ## Response
