@@ -7,10 +7,10 @@ Every [PaymentSheet](/payments/overview) presentation starts with one round-trip
 to **your** backend. Your app asks for a "checkout session"; your server makes
 one HMAC-signed call to Zennopay and returns the pair the SDK needs.
 
-In the default integration (**Model B**) there is nothing to sign but the API
-call itself: you **create a payment intent** server-to-server, and Zennopay
-**mints the session token** and returns it in the same response. No RS256 key
-pair, no `iss`/`kid`, no JWKS — one credential, the HMAC secret.
+There is nothing to sign but the API call itself: you **create a payment intent**
+server-to-server, and Zennopay **mints the session token** and returns it in the
+same response. No RS256 key pair, no `iss`/`kid`, no JWKS — one credential, the
+HMAC secret.
 
 ```mermaid
 sequenceDiagram
@@ -42,10 +42,8 @@ From the Zennopay Console → **Developers** tab:
 | Secret key (`sk_test_...` in sandbox; the live-mode key in production) + key ID | Server only — never in a client | HMAC-signing server-to-server calls |
 
 <Note>
-  **No signing key pair.** Model B has no partner-held RSA keypair and nothing to
-  publish at a JWKS endpoint — Zennopay mints the session token. If you have a
-  hard requirement to self-sign your own session tokens, see
-  [Advanced: bring-your-own signing key (Model A)](/advanced/self-signed-sessions).
+  **No signing key pair.** There is no partner-held RSA keypair and nothing to
+  publish at a JWKS endpoint — Zennopay mints the session token.
 </Note>
 
 ## Step 1 — Create the payment intent

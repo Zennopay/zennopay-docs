@@ -3,7 +3,7 @@
   "info": {
     "title": "Zennopay Partner API",
     "version": "1.1.0",
-    "description": "Cross-border QR payment intents for Zennopay partners. Server-to-server calls are HMAC-signed. In the default flow (Model B) Zennopay mints a short-lived session token on intent creation and returns it as `session_token`; the SDK sends it as a bearer credential on user-initiated scan/confirm/fetch calls, and your backend re-mints it via POST /v1/payment_intents/{intent_id}/session. Partners who self-sign their own RS256 session tokens (Model A) are supported but secondary.",
+    "description": "Cross-border QR payment intents for Zennopay partners. Server-to-server calls are HMAC-signed. Zennopay mints a short-lived session token on intent creation and returns it as `session_token`; the SDK sends it as a bearer credential on user-initiated scan/confirm/fetch calls, and your backend re-mints it via POST /v1/payment_intents/{intent_id}/session.",
     "contact": {
       "name": "Zennopay Support",
       "email": "support@zennopay.in",
@@ -289,7 +289,7 @@
       "sessionToken": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Zennopay-minted session token (Model B). Returned as `session_token` from POST /v1/payment_intents (and re-minted via POST /v1/payment_intents/{intent_id}/session). Short-lived, single-use for the confirming debit, and scoped to one intent. Opaque to partners — treat it as a bearer secret. (Partners on Model A self-sign this token as an RS256 JWT with audience `zennopay-checkout` and the `zennopay:*` claims; see /advanced/self-signed-sessions.)"
+        "description": "Zennopay-minted session token. Returned as `session_token` from POST /v1/payment_intents (and re-minted via POST /v1/payment_intents/{intent_id}/session). Short-lived, single-use for the confirming debit, and scoped to one intent. Opaque to partners — treat it as a bearer secret."
       },
       "receiptToken": {
         "type": "http",
@@ -356,7 +356,7 @@
         "type": "object",
         "required": ["partner_user_id", "amount_usd_cents", "corridor", "kyc_attestation", "sanctions_attestation"],
         "additionalProperties": false,
-        "description": "Model B create-intent body. `kyc_attestation` and `sanctions_attestation` are required here because Zennopay mints the session token. (Model A partners who self-sign their own tokens omit the two attestations from this body and carry them in the JWT claims instead.)",
+        "description": "Create-intent body. `kyc_attestation` and `sanctions_attestation` are required here because Zennopay mints the session token from the intent.",
         "properties": {
           "partner_user_id": {
             "type": "string",

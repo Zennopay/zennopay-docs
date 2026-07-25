@@ -4,9 +4,9 @@ description: "Stand up a sandbox integration end-to-end in about 10 minutes — 
 ---
 
 This walks through the minimum a partner backend needs to do to create a
-payment intent and hand it off to the Zennopay SDK on mobile. In the default
-integration (**Model B**) there is **one** credential to manage — your HMAC
-signing secret — and **no** key pair to generate.
+payment intent and hand it off to the Zennopay SDK on mobile. There is **one**
+credential to manage — your HMAC signing secret — and **no** key pair to
+generate.
 
 <Note>
   Sandbox HMAC keys are issued manually during onboarding for v1. Email
@@ -205,12 +205,10 @@ ZENNOPAY_BASE_URL=https://api.sandbox.zennopay.in
 ```
 
 <Note>
-  **Upgrading from a pre-0.2.0 starter?** Model B removes the RSA session-signing
-  key entirely. Delete `session_signing_key.pem`, drop the `JWT_ISS` / `kid` /
-  JWKS wiring, and stop minting session JWTs — read `session_token` straight off
-  the create response instead. Only migrate to
-  [Model A](/advanced/self-signed-sessions) if you have a hard requirement to
-  self-sign.
+  **Upgrading from a pre-0.2.0 starter?** The HMAC-only flow removes the RSA
+  session-signing key entirely. Delete `session_signing_key.pem`, drop the
+  `JWT_ISS` / `kid` / JWKS wiring, and stop minting session JWTs — read
+  `session_token` straight off the create response instead.
 </Note>
 
 ## Common errors

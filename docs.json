@@ -60,12 +60,6 @@
             ]
           },
           {
-            "group": "Advanced",
-            "pages": [
-              "advanced/self-signed-sessions"
-            ]
-          },
-          {
             "group": "Resources",
             "pages": [
               "changelog"
@@ -93,8 +87,7 @@
                   "api-reference/payment-intents/receipt"
                 ]
               },
-              "api-reference/webhooks",
-              "api-reference/jwt-inspector"
+              "api-reference/webhooks"
             ]
           }
         ]
@@ -102,6 +95,14 @@
     ]
   },
   "redirects": [
+    {
+      "source": "/advanced/self-signed-sessions",
+      "destination": "/authentication"
+    },
+    {
+      "source": "/api-reference/jwt-inspector",
+      "destination": "/authentication"
+    },
     {
       "source": "/sdks/overview",
       "destination": "/payments/overview"

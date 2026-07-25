@@ -65,13 +65,8 @@ endpoints by tag:
       new `session_token`.
     - **Wrong intent.** A token issued for intent A can't call intent B — the
       path `{intent_id}` must match the intent the token was minted for.
-    - **Already consumed.** The confirming call is single-use; re-mint if you
-      need another.
-
-    (If you self-sign your own tokens under
-    [Model A](/advanced/self-signed-sessions), decode the JWT with the
-    [JWT inspector](/api-reference/jwt-inspector) and check `aud`,
-    `exp - iat ≤ 600`, the `zennopay:*` claims, and that your JWKS is reachable.)
+    - **Already consumed.** The confirming call is single-use; re-mint via
+      `POST /v1/payment_intents/{intent_id}/session` if you need another.
   </Accordion>
   <Accordion title="My nonce keeps getting rejected">
     Each `X-Zennopay-Nonce` is single-use within a 10-minute window.
