@@ -98,6 +98,17 @@ On each incoming request, Zennopay verifies in this order. Any failure returns
 If all five pass, the request is authenticated and the partner ID is attached
 to the request context for authorization checks.
 
+<Note>
+  **The IP allowlist is enforced in production only.** Sandbox accepts
+  server-to-server calls from any source IP, so you can integrate from dev and
+  CI without registering ranges. Register your production egress IPs in the
+  [Console](https://console.zennopay.in) before going live. Until you register
+  any, the check does not restrict you — so a rollout never locks out an
+  existing integration. The **app** side (SDK calls) is guarded separately by
+  the [app package allowlist](#app-package-allowlist) below, in **both**
+  environments.
+</Note>
+
 ### Reference implementation
 
 <CodeGroup>
@@ -303,6 +314,42 @@ sign:
   to; the raw ID number itself never crosses.
 </Note>
 
+## App package allowlist
+
+The session token authenticates the **user + intent**. The **app package
+allowlist** authenticates the **app** that presents it: only your registered
+mobile app can drive the SDK calls (`scan` / `confirm`), so a leaked session
+token can't be replayed from a different app.
+
+Every SDK call on the session-token path sends the app's platform identifier in
+the `X-Zennopay-Package` header:
+
+| Platform | Value | Example |
+|---|---|---|
+| iOS | Bundle identifier | `com.acme.wallet` |
+| Android | Application ID (package name) | `com.acme.wallet` |
+
+The SDK sets this header for you — you don't construct it. Your only step is to
+**register your app's bundle id / package name in the
+[Console](https://console.zennopay.in)**. A session-token call whose
+`X-Zennopay-Package` isn't on your allowlist is rejected with
+`401 authentication_failed`.
+
+<Note>
+  **Enforced in both sandbox and production** — unlike the IP allowlist
+  (production-only), package identity is what distinguishes your app in every
+  environment. Until you register any package, the check does not restrict you
+  (so onboarding isn't blocked); once you register one, only registered app ids
+  are accepted. The HMAC server-to-server path is **not** package-gated — it's
+  governed by the IP allowlist instead.
+</Note>
+
+<Warning>
+  Register the app ids for **every** flavor/variant you ship — e.g. a separate
+  debug/staging application id (`com.acme.wallet.dev`) — or calls from those
+  builds will 401 in sandbox.
+</Warning>
+
 ## End-to-end flow
 
 ```text
@@ -325,7 +372,8 @@ Partner app calls SDK:
     Zennopay.presentCheckout(intentID, sessionToken)
     |
     v
-SDK talks to Zennopay directly with session_token as Authorization: Bearer:
+SDK talks to Zennopay directly with session_token as Authorization: Bearer
+(and the app's X-Zennopay-Package header, checked against your allowlist):
     1. User scans QR   -> POST /v1/payment_intents/:id/scan
     2. Amount + FX quote
     3. Slide to pay     -> POST /v1/payment_intents/:id/confirm (Idempotency-Key)
