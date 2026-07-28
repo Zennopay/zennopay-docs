@@ -21,11 +21,15 @@ generate, sign, publish, or register a key pair.
 
 ## Server-to-server HMAC
 
-Every request to the Zennopay REST API (`https://api.zennopay.in/v1/*` in
-production, `https://api.sandbox.zennopay.in/v1/*` in sandbox — see
+Every request to the Zennopay REST API (`https://api.zennopay.com/v1/*` in
+production, `https://api.sandbox.zennopay.com/v1/*` in sandbox — see
 [Environments](/api-reference/environments)) from your backend MUST be signed
 with HMAC-SHA256 and accompanied by four headers, and must originate from an
 allowlisted source IP.
+
+The legacy `api.zennopay.in` / `api.sandbox.zennopay.in` hosts remain served for
+existing integrations, with identical signing rules — the host is not part of
+the signing string, so no signature changes either way.
 
 ### Required headers
 
@@ -102,7 +106,7 @@ to the request context for authorization checks.
   **The IP allowlist is enforced in production only.** Sandbox accepts
   server-to-server calls from any source IP, so you can integrate from dev and
   CI without registering ranges. Register your production egress IPs in the
-  [Console](https://console.zennopay.in) before going live. Until you register
+  [Console](https://console.zennopay.com) before going live. Until you register
   any, the check does not restrict you — so a rollout never locks out an
   existing integration. The **app** side (SDK calls) is guarded separately by
   the [app package allowlist](#app-package-allowlist) below, in **both**
@@ -331,7 +335,7 @@ the `X-Zennopay-Package` header:
 
 The SDK sets this header for you — you don't construct it. Your only step is to
 **register your app's bundle id / package name in the
-[Console](https://console.zennopay.in)**. A session-token call whose
+[Console](https://console.zennopay.com)**. A session-token call whose
 `X-Zennopay-Package` isn't on your allowlist is rejected with
 `401 authentication_failed`.
 
@@ -357,7 +361,7 @@ User taps "Pay" in partner app
     |
     v
 Partner backend creates intent (HMAC-signed):
-    POST https://api.zennopay.in/v1/payment_intents
+    POST https://api.zennopay.com/v1/payment_intents
     body: { partner_user_id, amount_usd_cents, corridor,
             kyc_attestation, sanctions_attestation }
     header: Idempotency-Key

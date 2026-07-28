@@ -6,18 +6,18 @@
     "description": "Cross-border QR payment intents for Zennopay partners. Server-to-server calls are HMAC-signed. Zennopay mints a short-lived session token on intent creation and returns it as `session_token`; the SDK sends it as a bearer credential on user-initiated scan/confirm/fetch calls, and your backend re-mints it via POST /v1/payment_intents/{intent_id}/session.",
     "contact": {
       "name": "Zennopay Support",
-      "email": "support@zennopay.in",
-      "url": "https://zennopay.in"
+      "email": "support@zennopay.com",
+      "url": "https://zennopay.com"
     }
   },
   "servers": [
     {
-      "url": "https://api.zennopay.in",
-      "description": "Production — live partner traffic, real money. See /api-reference/environments."
+      "url": "https://api.zennopay.com",
+      "description": "Production — live partner traffic, real money. The legacy host https://api.zennopay.in continues to be served for existing integrations. See /api-reference/environments."
     },
     {
-      "url": "https://api.sandbox.zennopay.in",
-      "description": "Sandbox — integration, QA, demos. Sandbox HMAC keys only."
+      "url": "https://api.sandbox.zennopay.com",
+      "description": "Sandbox — integration, QA, demos. Sandbox HMAC keys only. The legacy host https://api.sandbox.zennopay.in continues to be served for existing integrations."
     }
   ],
   "security": [

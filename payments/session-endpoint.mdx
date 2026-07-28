@@ -125,7 +125,8 @@ A complete Express route, modeled on the reference partner backend
 import crypto from "node:crypto";
 import express from "express";
 
-const ZENNOPAY_BASE = process.env.ZENNOPAY_BASE_URL!;   // https://api.sandbox.zennopay.in
+const ZENNOPAY_BASE = process.env.ZENNOPAY_BASE_URL!;   // https://api.sandbox.zennopay.com
+                                                         // (api.sandbox.zennopay.in also still served)
 const KEY_ID = process.env.ZENNOPAY_HMAC_KEY_ID!;        // e.g. "acme_sandbox_2026q2"
 const SECRET = process.env.ZENNOPAY_HMAC_SECRET!;        // <your_secret> — server only
 

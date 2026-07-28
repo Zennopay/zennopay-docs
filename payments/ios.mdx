@@ -79,14 +79,22 @@ one integration serves testing and production:
 
 ```swift
 // Sandbox/testing (the default). Shows a "SANDBOX" pill in the sheet header.
-config: .sandbox          // https://api.sandbox.zennopay.in
+config: .sandbox          // https://api.sandbox.zennopay.com
 
 // Live traffic. Real money, no sandbox chrome.
-config: .production       // https://api.zennopay.in
+config: .production       // https://api.zennopay.com
 
 // Custom gateway (local development, pentest):
 config: ZennopayConfig(apiBaseURL: URL(string: "http://localhost:3000")!)
 ```
+
+<Note>
+  **Already shipped on `zennopay.in`?** Nothing to do. Previously published SDK
+  versions resolve `.sandbox` / `.production` to the `api.zennopay.in` hosts,
+  and **those hosts continue to be served** — same API, same credentials. You do
+  not need to ship an app update to stay working. See
+  [Environments](/api-reference/environments#legacy-domain-hosts).
+</Note>
 
 Your API keys never live in the app: per payment, your backend
 [creates the intent](/payments/session-endpoint) and Zennopay returns a session

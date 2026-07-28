@@ -10,14 +10,18 @@ generate.
 
 <Note>
   Sandbox HMAC keys are issued manually during onboarding for v1. Email
-  **partners@zennopay.in** to receive a sandbox key ID and signing secret.
+  **partners@zennopay.com** to receive a sandbox key ID and signing secret.
 </Note>
 
 <Info>
   **Environments.** Point everything at the sandbox host
-  (`https://api.sandbox.zennopay.in`) while integrating; swap to production
-  (`https://api.zennopay.in`) at go-live. Sandbox HMAC keys are rejected by
+  (`https://api.sandbox.zennopay.com`) while integrating; swap to production
+  (`https://api.zennopay.com`) at go-live. Sandbox HMAC keys are rejected by
   production and vice versa. See [Environments](/api-reference/environments).
+
+  The older `api.zennopay.in` / `api.sandbox.zennopay.in` hosts are **still
+  served** for existing integrations — `zennopay.com` is simply the canonical
+  domain for new work.
 </Info>
 
 ## 1. Get your credentials
@@ -34,7 +38,7 @@ environment variables on your backend:
 ```bash
 ZENNOPAY_HMAC_KEY_ID=acme_sandbox_2026q2
 ZENNOPAY_HMAC_SECRET=<your_secret>          # server only — never ship in a client
-ZENNOPAY_BASE_URL=https://api.sandbox.zennopay.in
+ZENNOPAY_BASE_URL=https://api.sandbox.zennopay.com
 ```
 
 See [Authentication](/authentication) for the full key-management model.
@@ -48,7 +52,7 @@ the corridor, and your per-payment KYC + sanctions attestations.
 
 <CodeGroup>
 ```bash cURL (Sandbox)
-curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents \
+curl -X POST https://api.sandbox.zennopay.com/v1/payment_intents \
   -H "X-Zennopay-Key-Id: acme_sandbox_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
   -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00a1b2c3d4e5f6789012345678abcdef00" \
@@ -67,7 +71,7 @@ curl -X POST https://api.sandbox.zennopay.in/v1/payment_intents \
 ```typescript Node
 import crypto from "node:crypto";
 
-const BASE_URL = process.env.ZENNOPAY_BASE_URL!;   // https://api.sandbox.zennopay.in
+const BASE_URL = process.env.ZENNOPAY_BASE_URL!;   // https://api.sandbox.zennopay.com
 const KEY_ID = process.env.ZENNOPAY_HMAC_KEY_ID!;  // acme_sandbox_2026q2
 const SECRET = process.env.ZENNOPAY_HMAC_SECRET!;  // <your_secret> — server only
 
@@ -201,7 +205,7 @@ The reference
 ```bash
 ZENNOPAY_HMAC_KEY_ID=acme_sandbox_2026q2
 ZENNOPAY_HMAC_SECRET=<your_secret>
-ZENNOPAY_BASE_URL=https://api.sandbox.zennopay.in
+ZENNOPAY_BASE_URL=https://api.sandbox.zennopay.com
 ```
 
 <Note>

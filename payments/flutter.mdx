@@ -49,12 +49,20 @@ both platforms.
 The environment is a config value, not a code path:
 
 ```dart
-ZennopayConfig.sandbox      // https://api.sandbox.zennopay.in — SANDBOX pill (default)
-ZennopayConfig.production   // https://api.zennopay.in — real money
+ZennopayConfig.sandbox      // https://api.sandbox.zennopay.com — SANDBOX pill (default)
+ZennopayConfig.production   // https://api.zennopay.com — real money
 
 // Custom gateway (local dev):
 ZennopayConfig.custom('http://localhost:3000')
 ```
+
+<Note>
+  **Already shipped on `zennopay.in`?** Nothing to do. Previously published SDK
+  versions resolve `sandbox` / `production` to the `api.zennopay.in` hosts, and
+  **those hosts continue to be served** — same API, same credentials. You do not
+  need to ship an app update to stay working. See
+  [Environments](/api-reference/environments#legacy-domain-hosts).
+</Note>
 
 Your API keys never live in the app: per payment, your backend
 [creates the intent](/payments/session-endpoint) and Zennopay returns a session

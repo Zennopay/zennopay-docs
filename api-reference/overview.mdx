@@ -7,17 +7,24 @@ The Zennopay API has two environments:
 
 <CodeGroup>
 ```bash Production
-https://api.zennopay.in/v1
+https://api.zennopay.com/v1
 ```
 
 ```bash Sandbox
-https://api.sandbox.zennopay.in/v1
+https://api.sandbox.zennopay.com/v1
 ```
 </CodeGroup>
 
 Sandbox credentials are issued during onboarding. See
 [Environments](/api-reference/environments) for the full URL reference, key
 scoping rules, and the path from sandbox to production.
+
+<Note>
+  **Already integrated against `api.zennopay.in`?** Those hosts continue to be
+  served — `zennopay.com` is the new canonical domain, not a replacement that
+  turns the old one off. See
+  [Legacy hosts](/api-reference/environments#legacy-domain-hosts).
+</Note>
 
 ## Conventions
 

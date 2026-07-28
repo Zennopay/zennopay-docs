@@ -3,6 +3,21 @@ title: "Changelog"
 description: "Notable changes to the Zennopay public API and SDKs."
 ---
 
+## 2026-07-29 — Canonical domain moved to `zennopay.com`
+
+- **Docs, API, and Console now use `zennopay.com`.** The canonical hosts are
+  `api.zennopay.com` (production), `api.sandbox.zennopay.com` (sandbox),
+  `console.zennopay.com`, and `docs.zennopay.com`. Every example, cURL snippet,
+  and SDK default in these docs has been updated.
+- **Nothing is switched off.** The `zennopay.in` hosts — including
+  `api.zennopay.in` and `api.sandbox.zennopay.in` — **continue to be served**
+  for existing integrations. Published SDK versions that ship the `.in` base URL
+  keep working unchanged; there is no forced migration and no cutover date.
+- **No API changes.** Endpoints, request/response shapes, HMAC signing, and the
+  session/receipt token contracts are unchanged. This is a hostname change only.
+- **Support email:** `support@zennopay.com` (partner enquiries:
+  `partners@zennopay.com`). Mail to the `.in` addresses still reaches us.
+
 ## 2026-07-22 — v0.5.0 — HMAC-only integration
 
 - **HMAC-only authentication.** Partners now authenticate with **HMAC only**.
