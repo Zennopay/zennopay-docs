@@ -10,9 +10,10 @@ is callable here — request bodies are validated client-side against the
 schema before they're sent.
 
 <Note>
-  The playground talks to `https://api.sandbox.zennopay.in`. Use a
+  The playground talks to `https://api.sandbox.zennopay.com`. Use a
   **sandbox** HMAC key (`{partner}_sandbox_*`) — production keys are
-  rejected by the sandbox host.
+  rejected by the sandbox host. The legacy `api.sandbox.zennopay.in` host is
+  still served if your client is pinned to it.
 </Note>
 
 ## What you'll need

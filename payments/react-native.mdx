@@ -77,6 +77,14 @@ await presentSheet({
 });
 ```
 
+<Note>
+  **Already shipped on `zennopay.in`?** Nothing to do. Previously published SDK
+  versions resolve the `sandbox` / `production` environments to the
+  `api.zennopay.in` hosts, and **those hosts continue to be served** — same API,
+  same credentials. You do not need to ship an app update to stay working. See
+  [Environments](/api-reference/environments#legacy-domain-hosts).
+</Note>
+
 Your API keys never live in the app: per payment, your backend
 [creates the intent](/payments/session-endpoint) and Zennopay returns a session
 token. Your backend passes it to your app, and the SDK holds only that

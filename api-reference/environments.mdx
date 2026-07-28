@@ -11,13 +11,31 @@ at.
 
 | Environment | Base URL | Use it for |
 |---|---|---|
-| **Production** | `https://api.zennopay.in` | Live partner traffic. Real money. Production HMAC keys. |
-| **Sandbox** | `https://api.sandbox.zennopay.in` | Integration, QA, and demos. Sandbox HMAC keys only — production keys are rejected by the sandbox host. |
+| **Production** | `https://api.zennopay.com` | Live partner traffic. Real money. Production HMAC keys. |
+| **Sandbox** | `https://api.sandbox.zennopay.com` | Integration, QA, and demos. Sandbox HMAC keys only — production keys are rejected by the sandbox host. |
 
 <Note>
   All endpoints are mounted under `/v1`. Example:
-  `https://api.zennopay.in/v1/payment_intents`.
+  `https://api.zennopay.com/v1/payment_intents`.
 </Note>
+
+### Legacy domain hosts
+
+`zennopay.com` is now the canonical domain, but **the `zennopay.in` hosts
+continue to be served** — nothing is being switched off.
+
+| Legacy host | Canonical host | Status |
+|---|---|---|
+| `https://api.zennopay.in` | `https://api.zennopay.com` | Still served |
+| `https://api.sandbox.zennopay.in` | `https://api.sandbox.zennopay.com` | Still served |
+
+<Check>
+  **Existing integrations keep working.** Published Zennopay SDK versions ship
+  the `.in` base URL compiled in, and those builds are fully supported — you do
+  **not** need to release an app update. There is no cutover date. Both domains
+  serve the same API, the same credentials, and the same signing rules; only the
+  hostname differs. New integrations should use `zennopay.com`.
+</Check>
 
 ## Picking the right one
 
@@ -37,8 +55,11 @@ backend the flow lands on.
 
 | Surface | URL |
 |---|---|
-| Hosted checkout (mobile SDK target) | `https://checkout.zennopay.in` |
-| Partner console | `https://console.zennopay.in` |
+| Hosted checkout (mobile SDK target) | `https://checkout.zennopay.com` |
+| Partner console | `https://console.zennopay.com` |
+
+The `.in` equivalents (`checkout.zennopay.in`, `console.zennopay.in`) also
+remain reachable.
 
 ## What about staging?
 
@@ -49,8 +70,10 @@ public hostname. Partners test against **sandbox**.
 ## Promotion path
 
 ```text
-your code  --->  api.sandbox.zennopay.in  --(graduation review)-->  api.zennopay.in
+your code  --->  api.sandbox.zennopay.com  --(graduation review)-->  api.zennopay.com
 ```
+
+(The same path on the legacy `.in` hosts is equally valid and still supported.)
 
 Graduation from sandbox to production is gated on:
 
@@ -58,4 +81,4 @@ Graduation from sandbox to production is gated on:
 2. A pre-funded USD float at the Zennopay FBO account.
 3. KYC / sanctions attestation flow verified end-to-end in sandbox.
 
-Email **partners@zennopay.in** to start the graduation review.
+Email **partners@zennopay.com** to start the graduation review.

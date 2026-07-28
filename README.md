@@ -1,6 +1,6 @@
 # zennopay-docs
 
-Mintlify source for [docs.zennopay.in](https://docs.zennopay.in) — the public
+Mintlify source for [docs.zennopay.com](https://docs.zennopay.com) — the public
 documentation for the Zennopay cross-border QR payments API.
 
 Zennopay is a B2B fintech API that lets partner fintechs embed cross-border
