@@ -19,9 +19,8 @@ generate.
   (`https://api.zennopay.com`) at go-live. Sandbox HMAC keys are rejected by
   production and vice versa. See [Environments](/api-reference/environments).
 
-  The older `api.zennopay.in` / `api.sandbox.zennopay.in` hosts are **still
-  served** for existing integrations — `zennopay.com` is simply the canonical
-  domain for new work.
+  The `.in` hosts remain supported alternates for existing integrations. New
+  integrations should use the canonical `.com` hosts above.
 </Info>
 
 ## 1. Get your credentials
@@ -116,7 +115,7 @@ You should receive a `201 Created`. The response carries the **`session_token`**
 
 ```json
 {
-  "intent_id": "zp_AbCd1234EfGh5678",
+  "intent_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
   "status": "created",
   "amount_usd_cents": 345,
   "corridor": "th_promptpay",
@@ -142,7 +141,7 @@ callback. No browser, no redirect, no URL scheme.
 ```swift iOS
 Zennopay.presentCheckout(
   from: viewController,
-  intentID: "zp_AbCd1234EfGh5678",
+  intentID: "0198f31a-7c2b-7d91-9fa2-112233445566",
   sessionToken: "zpst_9b1f..."
 ) { result in
   // .completed / .canceled / .failed
@@ -152,7 +151,7 @@ Zennopay.presentCheckout(
 ```kotlin Android
 Zennopay.presentCheckout(
   activity = this,
-  intentId = "zp_AbCd1234EfGh5678",
+  intentId = "0198f31a-7c2b-7d91-9fa2-112233445566",
   sessionToken = "zpst_9b1f...",
 ) { result ->
   // Completed / Canceled / Failed
@@ -162,7 +161,7 @@ Zennopay.presentCheckout(
 ```dart Flutter
 final result = await Zennopay.presentSheet(
   context: context,
-  intentId: 'zp_AbCd1234EfGh5678',
+  intentId: '0198f31a-7c2b-7d91-9fa2-112233445566',
   sessionToken: 'zpst_9b1f...',
 );
 ```
@@ -170,7 +169,7 @@ final result = await Zennopay.presentSheet(
 ```tsx React Native
 const { presentSheet } = useZennopay();
 const result = await presentSheet({
-  intentId: 'zp_AbCd1234EfGh5678',
+  intentId: '0198f31a-7c2b-7d91-9fa2-112233445566',
   sessionToken: 'zpst_9b1f...',
 });
 ```

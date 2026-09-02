@@ -12,13 +12,13 @@
     "indexing": "navigable",
     "metatags": {
       "og:site_name": "Zennopay Docs",
-      "og:title": "Zennopay Docs — Cross-border QR payments, one SDK",
-      "og:description": "Zennopay is a B2B SDK for cross-border QR payments in Southeast Asia. Your users scan any Thai PromptPay or Vietnamese VietQR code and pay from a USD wallet, inside your app, via one native PaymentSheet.",
+      "og:title": "Zennopay Docs — QR Payments and Platform Payouts",
+      "og:description": "Integrate cross-border QR Payments with a native PaymentSheet or send asynchronous bank payouts with the Platform Payouts API.",
       "og:image": "https://docs.zennopay.com/images/og-image.png",
       "og:type": "website",
       "twitter:card": "summary_large_image",
-      "twitter:title": "Zennopay Docs — Cross-border QR payments, one SDK",
-      "twitter:description": "Embed cross-border QR payments in your app. PromptPay & VietQR payouts from a USD wallet via one native PaymentSheet.",
+      "twitter:title": "Zennopay Docs — QR Payments and Platform Payouts",
+      "twitter:description": "Developer documentation for Zennopay QR Payments and Platform Payouts.",
       "twitter:image": "https://docs.zennopay.com/images/og-image.png"
     }
   },
@@ -37,8 +37,9 @@
             ]
           },
           {
-            "group": "Make payments",
+            "group": "QR Payments",
             "pages": [
+              "qr-payments/overview",
               "payments/overview",
               "payments/session-endpoint",
               "payments/ios",
@@ -47,6 +48,17 @@
               "payments/react-native",
               "payments/testing",
               "payments/reopen-receipt"
+            ]
+          },
+          {
+            "group": "Platform Payouts",
+            "pages": [
+              "platform-payouts/overview",
+              "platform-payouts/quickstart",
+              "platform-payouts/beneficiaries",
+              "platform-payouts/payouts",
+              "platform-payouts/webhooks",
+              "platform-payouts/testing"
             ]
           },
           {
@@ -82,6 +94,8 @@
                 "pages": [
                   "api-reference/payment-intents/create",
                   "api-reference/payment-intents/session",
+                  "api-reference/payment-intents/scan",
+                  "api-reference/payment-intents/confirm",
                   "api-reference/payment-intents/get",
                   "api-reference/payment-intents/receipt-token",
                   "api-reference/payment-intents/receipt"

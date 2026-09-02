@@ -100,7 +100,7 @@ side — read it off the response and hand it to your app:
 
 ```json
 {
-  "intent_id": "zp_AbCd1234EfGh5678",
+  "intent_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
   "status": "created",
   "amount_usd_cents": 345,
   "corridor": "vn_vietqr",
@@ -126,7 +126,7 @@ import crypto from "node:crypto";
 import express from "express";
 
 const ZENNOPAY_BASE = process.env.ZENNOPAY_BASE_URL!;   // https://api.sandbox.zennopay.com
-                                                         // (api.sandbox.zennopay.in also still served)
+                                                         // (api.sandbox.zennopay.com also still served)
 const KEY_ID = process.env.ZENNOPAY_HMAC_KEY_ID!;        // e.g. "acme_sandbox_2026q2"
 const SECRET = process.env.ZENNOPAY_HMAC_SECRET!;        // <your_secret> — server only
 

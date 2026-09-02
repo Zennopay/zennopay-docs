@@ -1,0 +1,284 @@
+---
+title: "QR Payments"
+description: "Create a payment intent, scan a supported merchant QR, confirm once, and track the asynchronous result."
+---
+
+QR Payments lets a partner app present Zennopay's native PaymentSheet so a
+user can scan a supported merchant-presented QR and pay from a USD wallet. Your
+backend creates the intent with HMAC authentication; the app uses the
+short-lived session token returned by Zennopay for scan, confirm, and status.
+
+## Availability
+
+| Destination | Scheme | Currency | Corridor | Current availability |
+|---|---|---|---|---|
+| Vietnam | VietQR | VND | `vn_vietqr` | Implemented; live and sandbox use require account enablement. |
+| Thailand | PromptPay | THB | `th_promptpay` | API and QR parsing preview; payout execution is not currently available. |
+| Philippines | QR Ph | PHP | — | Not exposed by the current v1 API. |
+
+<Warning>
+  Do not send `ph_instapay`, `ph_qrph`, or another Philippines corridor value.
+  The current create-intent schema, session token, and QR parser accept only
+  `vn_vietqr` and `th_promptpay`. Contact support before designing a production
+  flow around a destination marked preview or unavailable.
+</Warning>
+
+Availability is environment- and account-specific. A corridor identifier being
+accepted by the API does not by itself mean payout execution is enabled.
+
+## End-to-end flow
+
+<Steps>
+  <Step title="Create an intent from your backend">
+    HMAC-sign `POST /v1/payment_intents`. Send your opaque user ID, USD cents,
+    corridor, KYC attestation, and sanctions attestation. When session minting
+    is enabled, the response includes `session_token` and
+    `session_expires_at`.
+  </Step>
+  <Step title="Present PaymentSheet">
+    Pass the `intent_id` and opaque session token to the native SDK. Never put
+    your HMAC secret in an app or browser.
+  </Step>
+  <Step title="Scan the merchant QR">
+    The SDK sends the raw EMVCo payload to
+    `POST /v1/payment_intents/{id}/scan`. Zennopay re-parses the payload,
+    validates its checksum, scheme, country, currency, and amount rules, then
+    binds a quote. Client-decoded fields are display-only.
+  </Step>
+  <Step title="Confirm once">
+    The SDK sends `POST /v1/payment_intents/{id}/confirm` with the displayed
+    quote and an `Idempotency-Key`. Confirm consumes the session token's
+    one-time `jti`; scan and status reads do not.
+  </Step>
+  <Step title="Track the result">
+    A successful confirm normally returns `authorized` while payout execution
+    continues outside the request. Poll `GET /v1/payment_intents/{id}` and
+    consume webhooks until `captured`, `failed`, `refunded`, or `reversed`.
+  </Step>
+</Steps>
+
+## Create an intent
+
+```http
+POST /v1/payment_intents
+Idempotency-Key: checkout-8d92-v1
+Content-Type: application/json
+```
+
+```json
+{
+  "partner_user_id": "usr_8f3ka92m",
+  "amount_usd_cents": 345,
+  "corridor": "vn_vietqr",
+  "kyc_attestation": {
+    "verified": true,
+    "method": "kyc_v2",
+    "verified_at": "2026-09-02T11:55:00Z",
+    "id_type": "passport",
+    "id_country": "IN"
+  },
+  "sanctions_attestation": {
+    "clean": true,
+    "screened_at": "2026-09-02T11:59:00Z"
+  }
+}
+```
+
+`amount_usd_cents` is a positive integer number because this endpoint is a
+USD-cents contract. The 64-bit string rule below applies to local-currency
+minor-unit fields.
+
+Response (`201 Created`):
+
+```json
+{
+  "intent_id": "<intent_uuid>",
+  "reconciliation_ref": "zpr_...",
+  "status": "created",
+  "amount_usd_cents": 345,
+  "corridor": "vn_vietqr",
+  "created_at": "2026-09-02T12:00:00.000Z",
+  "session_token": "<opaque bearer token>",
+  "session_expires_at": 1788350700
+}
+```
+
+The session fields are present only when Zennopay session minting is enabled
+and both attestations are supplied. Existing partner-minted JWT integrations
+remain supported where explicitly provisioned.
+
+## Local money is an int64 string
+
+All `local_amount_minor_units` fields accept or return a base-10 signed-int64
+string. VND has exponent zero, so `"3500000"` means 3,500,000 dong. THB has
+two minor-unit digits, so `"12075"` means THB 120.75.
+
+```json
+{
+  "local_amount_minor_units": "3500000"
+}
+```
+
+For compatibility, scan and confirm currently accept a positive safe JSON
+integer too, but clients should always send a string. Responses always return
+local BIGINT-denominated amounts as strings.
+
+## Scan a QR
+
+```http
+POST /v1/payment_intents/{intent_id}/scan
+Authorization: Bearer <session_token>
+Content-Type: application/json
+```
+
+```json
+{
+  "qr_payload": "<raw EMVCo payload>",
+  "local_amount_minor_units": "3500000"
+}
+```
+
+For a static QR, `local_amount_minor_units` is required. For a dynamic QR, the
+embedded amount is authoritative; omit the field or send the exact same value.
+A different value is rejected. `qr_payload` is limited to 4096 characters.
+
+Response (`200 OK`):
+
+```json
+{
+  "intent_id": "<intent_uuid>",
+  "status": "created",
+  "merchant": {
+    "scheme": "vietqr",
+    "name": "Example Merchant",
+    "city": "HANOI",
+    "country": "VN",
+    "mcc": "5812"
+  },
+  "qr_kind": "static",
+  "quote": {
+    "quote_id": "quote_...",
+    "quote_version": 1,
+    "amount_usd_cents": 345,
+    "local_amount_minor_units": "3500000",
+    "local_currency": "704",
+    "expires_at": 1788350430000
+  }
+}
+```
+
+`local_currency` is the ISO 4217 numeric currency (`704` for VND, `764` for
+THB). `expires_at` is Unix epoch milliseconds.
+
+When the same user scans the same payload and amount within one minute, the
+API may return `409 conflict`. Repeat only after explicit user acknowledgement
+with `"duplicate_confirmed": true`.
+
+## Confirm
+
+```http
+POST /v1/payment_intents/{intent_id}/confirm
+Authorization: Bearer <session_token>
+Idempotency-Key: confirm-8d92-v1
+Content-Type: application/json
+```
+
+```json
+{
+  "quote_id": "quote_...",
+  "quote_version": 1
+}
+```
+
+The quote fields are optional on the wire but recommended. If supplied, they
+must match the quote bound during scan. A dynamic QR does not permit a local
+amount override.
+
+Confirm reserves funds, performs the wallet authorization/debit, and durably
+queues the local payout. The payout provider is not called inside the web
+request. Do not treat HTTP `200` as final delivery; inspect `status`.
+
+## Statuses
+
+| Status | Meaning | Terminal |
+|---|---|---|
+| `created` | Intent exists; no confirmed money movement. | No |
+| `authorized` | Wallet side is captured or under recovery; local payout is queued or processing. | No |
+| `captured` | The local payout completed. | Yes |
+| `failed` | The payment will not complete. | Yes |
+| `expired` | The intent expired before completion. | Yes |
+| `refunded` | Funds were returned through the refund flow. | Yes |
+| `reversed` | A completed provider transaction was reversed. | Yes |
+
+The receipt endpoint intentionally collapses these into `pending`, `captured`,
+`failed`, and `refunded` for display.
+
+## Authentication and idempotency
+
+- Backend endpoints use the HMAC scheme in [Authentication](/authentication).
+- SDK scan, confirm, and JWT status reads use the intent-bound session bearer
+  token.
+- `/confirm` consumes the token `jti`; `/scan` and `GET /:id` only verify it.
+- Re-mint an expired session for the same intent with
+  `POST /v1/payment_intents/{id}/session`; do not create another intent.
+- Send `Idempotency-Key` on create and confirm. Retain the same key when
+  retrying an operation after a transport failure.
+- After an ambiguous confirm response, read the intent before attempting
+  anything else. A durable single-flight guard prevents a second wallet debit
+  or payout for the same intent.
+
+## Cancel
+
+`POST /v1/payment_intents/{id}/cancel` uses HMAC authentication. It is allowed
+only before confirm starts. Cancellation is represented as terminal `failed`.
+Once confirm is in flight or finished, the API returns `409 conflict` and does
+not pretend the money movement was canceled.
+
+## Errors
+
+```json
+{
+  "error": {
+    "code": "validation_failed",
+    "message": "Request validation failed.",
+    "request_id": "req_..."
+  }
+}
+```
+
+Public messages are deliberately generic. Branch on the stable top-level code
+and retain `request_id` for support:
+
+| Code | HTTP | Common cause |
+|---|---:|---|
+| `authentication_failed` | 401 | Invalid HMAC/session token, expired token, or reused confirm `jti`. |
+| `authorization_failed` | 403 | The authenticated partner does not own the intent. |
+| `not_found` | 404 | Intent is not visible to the authenticated principal. |
+| `conflict` | 409 | Stale quote, duplicate scan confirmation, confirm lock, or terminal state. |
+| `validation_failed` | 400 | Invalid body, QR, corridor binding, amount, merchant, or available balance. |
+| `rate_limited` | 429 | Per-partner request limit exceeded. |
+| `payload_too_large` | 413 | Request exceeds the configured body limit. |
+| `internal_error` | 500 | Required execution dependency is unavailable or an unexpected error occurred. |
+
+## Sandbox checklist
+
+1. Use the sandbox base URL and sandbox HMAC credential.
+2. Create an intent for `vn_vietqr` with both attestations and verify that a
+   session token is returned.
+3. Scan a valid VietQR fixture using string local amounts.
+4. Confirm once with an idempotency key.
+5. Poll through `authorized` to a terminal state and verify the webhook.
+6. Exercise expired-quote, duplicate-scan, invalid-QR, insufficient-balance,
+   and transport-retry paths before requesting live enablement.
+
+Sandbox and live credentials, balances, configuration, and state are
+separate. Sandbox completion never proves a destination is enabled in live
+mode.
+
+## Related reference
+
+- [Create a payment intent](/api-reference/payment-intents/create)
+- [Re-mint a session](/api-reference/payment-intents/session)
+- [Get a payment intent](/api-reference/payment-intents/get)
+- [Authentication](/authentication)
+- [Payment webhooks](/api-reference/webhooks)

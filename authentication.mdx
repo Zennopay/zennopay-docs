@@ -22,14 +22,10 @@ generate, sign, publish, or register a key pair.
 ## Server-to-server HMAC
 
 Every request to the Zennopay REST API (`https://api.zennopay.com/v1/*` in
-production, `https://api.sandbox.zennopay.com/v1/*` in sandbox — see
+live mode, `https://api.sandbox.zennopay.com/v1/*` in sandbox — see
 [Environments](/api-reference/environments)) from your backend MUST be signed
 with HMAC-SHA256 and accompanied by four headers, and must originate from an
 allowlisted source IP.
-
-The legacy `api.zennopay.in` / `api.sandbox.zennopay.in` hosts remain served for
-existing integrations, with identical signing rules — the host is not part of
-the signing string, so no signature changes either way.
 
 ### Required headers
 
@@ -95,9 +91,9 @@ On each incoming request, Zennopay verifies in this order. Any failure returns
 1. **IP allowlist:** source IP must match your registered list.
 2. **Key ID:** `X-Zennopay-Key-Id` must exist, be active, and not revoked.
 3. **Timestamp skew:** within ±5 minutes of server time.
-4. **Nonce uniqueness:** not seen in the last 10 minutes.
-5. **Signature:** reconstruct the canonical request, recompute HMAC, compare
+4. **Signature:** reconstruct the canonical request, recompute HMAC, compare
    in constant time.
+5. **Nonce uniqueness:** not seen in the replay window.
 
 If all five pass, the request is authenticated and the partner ID is attached
 to the request context for authorization checks.
@@ -252,7 +248,7 @@ Create the intent with a normal HMAC-signed call. The
 
 ```json
 {
-  "intent_id": "zp_AbCd1234EfGh5678",
+  "intent_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
   "status": "created",
   "amount_usd_cents": 345,
   "corridor": "th_promptpay",

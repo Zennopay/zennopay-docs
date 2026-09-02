@@ -1,48 +1,64 @@
 ---
-title: "Corridors"
-description: "Which networks Zennopay supports and how each one works."
+title: "QR Payments corridors"
+description: "QR schemes, currencies, and current API availability."
 ---
 
-A *corridor* is a (origin, destination, rail) triple. v1 covers two
-destination corridors; origin is always a USD wallet held by the partner.
+A QR Payments corridor binds a destination country, merchant QR scheme, and
+local settlement currency. The corridor is fixed when the payment intent is
+created and cryptographically bound into the checkout session token.
 
-## TH — PromptPay
+## Availability
 
-- **Corridor code:** `th_promptpay`
-- **Local rail:** PromptPay (Bank of Thailand's instant payment network)
-- **Settlement currency to merchant:** THB
-- **Refund window:** T+7 (payout-partner-side)
+| Destination | QR scheme | Currency | Corridor code | Availability |
+|---|---|---|---|---|
+| Vietnam | VietQR | VND | `vn_vietqr` | Implemented; account enablement is required in each environment. |
+| Thailand | PromptPay | THB | `th_promptpay` | API and QR parsing preview; payout execution is not currently available. |
+| Philippines | QR Ph | PHP | — | Not exposed by the current v1 API. |
 
-PromptPay QR codes are issued by Thai banks to merchants of every size, from
-airport duty-free counters to street stalls. Zennopay routes the transaction
-through its licensed payout partner network for the corridor; the partner
-network handles USD → THB FX and the final push to the merchant's
-PromptPay-registered account.
+<Warning>
+  The current create-intent schema, session token claim, database constraint,
+  and authoritative QR parser accept only `vn_vietqr` and `th_promptpay`.
+  Philippines/QR Ph does not yet have a public corridor code in v1. Do not send
+  a guessed value or advertise it as live.
+</Warning>
 
-## VN — VietQR
+## Vietnam — VietQR
 
 - **Corridor code:** `vn_vietqr`
-- **Local rail:** VietQR (interbank QR standard governed by NAPAS)
-- **Settlement currency to merchant:** VND
-- **Refund window:** T+1 (payout-partner-side)
+- **QR scheme:** VietQR
+- **Expected country:** `VN`
+- **Expected ISO 4217 numeric currency:** `704`
+- **Local amount format:** base-10 int64 string; VND is whole dong
 
-VietQR is the unified QR standard across Vietnamese banks. Zennopay's payout
-partner for this corridor handles USD → VND conversion and merchant
-settlement.
+Zennopay re-parses the raw VietQR payload server-side and verifies its CRC,
+scheme, country, currency, amount rules, merchant, and destination before
+confirm can move money. Both sandbox and live use require the corridor to be
+enabled for the account.
 
-## Choosing a corridor
+## Thailand — PromptPay preview
 
-The corridor is locked when the payment intent is created, and the
-Zennopay-minted session token is bound to it. Your app picks the corridor based
-on which country the user is paying in (typically inferred from the QR code
-itself; partner UX picks the corridor *before* the user scans).
+- **Corridor code:** `th_promptpay`
+- **QR scheme:** PromptPay
+- **Expected country:** `TH`
+- **Expected ISO 4217 numeric currency:** `764`
+- **Local amount format:** base-10 int64 string in satang
 
-## Roadmap
+The v1 API and QR parser recognize this corridor, but the current service does
+not have a payout execution rail enabled for it. Integrations may test contract
+and parsing behavior only when explicitly provisioned; do not plan production
+traffic until Zennopay confirms execution availability.
 
-| Corridor | Status |
-|---|---|
-| TH PromptPay | Live (v1) |
-| VN VietQR | Live (v1) |
+## Philippines — QR Ph
 
-Additional Southeast Asian corridors are on the roadmap. Contact
-**partners@zennopay.com** for current availability.
+QR Ph/PHP is not accepted by the current v1 intent schema, token verifier, or
+QR parser, and no `ph_*` corridor is public. A future availability announcement
+must include the exact corridor code and an updated API schema before clients
+can integrate it.
+
+## Selecting a corridor
+
+Your backend selects the corridor before presenting PaymentSheet. The raw QR
+is then parsed authoritatively and must match the token-bound scheme, country,
+and currency. A mismatch returns `validation_failed` before any money moves.
+
+See [QR Payments](/qr-payments/overview) for the complete request flow.

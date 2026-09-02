@@ -1,0 +1,74 @@
+---
+title: "Payout webhooks"
+description: "Verify signed Platform Payouts lifecycle events."
+---
+
+Platform Payouts writes a webhook event in the same transaction as each public
+status transition. Delivery is at least once and ordering is not guaranteed.
+
+## Event types
+
+- `payout.created`
+- `payout.processing`
+- `payout.completed`
+- `payout.failed`
+- `payout.reversed`
+
+## Payload
+
+```json
+{
+  "id": "evt_...",
+  "type": "payout.completed",
+  "webhook_event_id": "evt_...",
+  "webhook_event_type": "payout.completed",
+  "api_version": "2026-08-31",
+  "created_at": "2026-09-02T12:00:05.000Z",
+  "data": {
+    "payout": {
+      "id": "pout_...",
+      "status": "completed",
+      "amount": "125000",
+      "currency": "VND"
+    }
+  }
+}
+```
+
+`data.payout` uses the same public projection as the API. It does not include
+full account numbers, encrypted beneficiary material, internal errors, or
+execution credentials.
+
+## Verify the request
+
+Webhook requests include:
+
+```http
+X-Zennopay-Key-Id: <outbound key id>
+X-Zennopay-Timestamp: <RFC3339 timestamp>
+X-Zennopay-Nonce: <64 hex characters>
+X-Zennopay-Signature: <base64 HMAC-SHA256>
+X-Zennopay-Webhook-Event-Id: <event id>
+X-Zennopay-Webhook-Event-Type: payout.completed
+```
+
+Build the canonical string exactly as described in
+[Authentication](/authentication), using the actual request path and query and
+the SHA-256 hash of the exact raw body bytes. Verify with the outbound webhook
+secret issued for the endpoint—not the API signing secret. Use a constant-time
+comparison, enforce a timestamp window, and reject repeated nonces.
+
+<Warning>
+  Do not parse and re-serialize JSON before verifying. Even equivalent JSON
+  produces a different signature when its bytes differ.
+</Warning>
+
+## Delivery contract
+
+- Return `2xx` only after the event is durably stored.
+- Deduplicate by `webhook_event_id`.
+- A `4xx` response is treated as a permanent endpoint or contract failure.
+- Network and `5xx` failures are retried with backoff, then dead-lettered for
+  operator replay after the configured attempt limit.
+- Tolerate duplicate and out-of-order events. Fetch
+  `GET /v1/payouts/{id}` for authoritative current state.

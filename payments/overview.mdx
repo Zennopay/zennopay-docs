@@ -93,7 +93,8 @@ sequenceDiagram
     ZP-->>App: merchant + quote-bound amount (VND + USD)
     U->>App: Slide to pay
     App->>ZP: POST /v1/payment_intents/:id/confirm (Bearer, Idempotency-Key)
-    ZP->>Rail: Payout to merchant's bank
+    ZP-->>App: status: authorized
+    ZP->>Rail: Background worker submits payout
     App->>ZP: GET /v1/payment_intents/:id (poll to terminal)
     ZP-->>App: status: captured
     App-->>U: "Payment sent" → sheet dismisses
@@ -121,7 +122,8 @@ The SDK owns the entire payment surface, so you never build:
 - **A QR scanner** — camera capture, torch, gallery import, and a paste-QR
   fallback (which also makes the flow testable on simulators).
 - **EMVCo parsing** — the raw payload is validated authoritatively server-side
-  (CRC, tags, merchant extraction). VietQR today, PromptPay next.
+  (CRC, tags, merchant extraction). See [Corridors](/concepts/corridors) for
+  scheme and execution availability.
 - **FX quoting UI** — the sheet shows the bound local amount and the exact USD
   wallet debit, and silently re-quotes when a quote expires.
 - **A confirm surface** — slide-to-pay fires the confirm exactly once, with an
@@ -139,8 +141,10 @@ The SDK owns the entire payment surface, so you never build:
   [corridor limits](/fundamentals/limits) automatically (Vietnam: ₫5,000,000
   per transaction, ₫10,000,000 per day, ₫25,000,000 per month per user) and
   the sheet renders the right copy.
-- **New corridors** — when a corridor lights up (Thailand PromptPay is next),
-  existing integrations get it with zero client work.
+- **Corridor parsing and binding** — the server checks the QR scheme, country,
+  and currency against the corridor bound into the session. Philippines/QR Ph
+  is not exposed by the current v1 API; Thailand is an API/parsing preview and
+  Vietnam is implemented subject to account enablement.
 - **The receipt surface** — you keep your own transaction-history list, but you
   never build the authoritative receipt view. When a user taps a past payment,
   [`presentReceipt`](/payments/reopen-receipt) reopens the branded Zennopay

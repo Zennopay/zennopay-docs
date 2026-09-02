@@ -44,28 +44,28 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
   One of `th_promptpay` (Thailand PromptPay) or `vn_vietqr` (Vietnam VietQR).
 </ParamField>
 
-<ParamField body="kyc_attestation" type="object" required>
+<ParamField body="kyc_attestation" type="object">
   Your per-payment KYC attestation, from your real KYC system:
   `{ verified, method, verified_at, id_type, id_country }`. `id_type` /
   `id_country` declare which government ID the user was KYC'd on; the raw ID
   number never crosses.
 </ParamField>
 
-<ParamField body="sanctions_attestation" type="object" required>
+<ParamField body="sanctions_attestation" type="object">
   Your per-payment sanctions attestation, from your real screening system:
   `{ clean, screened_at }`.
 </ParamField>
 
 <Note>
-  The KYC and sanctions attestations travel in this body: Zennopay mints the
-  session token from the intent and will not move money on an intent that
-  doesn't carry them.
+  Send both KYC and sanctions attestations to receive a Zennopay-minted session
+  token. Deployments explicitly provisioned for partner-minted session JWTs may
+  omit both; do not mix one auth model into the other.
 </Note>
 
 ## Response
 
 <ResponseField name="intent_id" type="string">
-  Zennopay intent ID, format `zp_...`. Use this for subsequent SDK and webhook
+  Zennopay intent ID, format `<intent_uuid>`. Use this for subsequent SDK and webhook
   correlation.
 </ResponseField>
 
@@ -99,7 +99,7 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
 ## Example
 
 Examples use the sandbox host. Swap to `https://api.zennopay.com` in
-production. The legacy `api.zennopay.in` hosts are still served for existing
+production. The `.in` hosts remain supported alternates for existing
 integrations. See [Environments](/api-reference/environments).
 
 <CodeGroup>
@@ -140,7 +140,7 @@ curl -X POST https://api.zennopay.com/v1/payment_intents \
 
 ```json Response
 {
-  "intent_id": "zp_AbCd1234EfGh5678",
+  "intent_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
   "status": "created",
   "amount_usd_cents": 345,
   "corridor": "th_promptpay",

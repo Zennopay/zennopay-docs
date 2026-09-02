@@ -1,0 +1,151 @@
+---
+title: "Payouts API"
+description: "Create, retrieve, list, and interpret Platform Payouts."
+---
+
+## Money format
+
+Every money field is a base-10 signed-int64 string. Send `amount` as a positive
+string. VND has exponent zero; other currencies use ISO minor units. Parse
+responses with a 64-bit or arbitrary-precision integer type.
+
+## Create a payout
+
+```http
+POST /v1/payouts
+Idempotency-Key: order-456-payout-v1
+Content-Type: application/json
+```
+
+```json
+{
+  "amount": "125000",
+  "currency": "VND",
+  "beneficiary_id": "ben_...",
+  "reference": "order_456",
+  "description": "Order settlement",
+  "metadata": { "order_id": "order_456" }
+}
+```
+
+| Field | Type | Required | Rules |
+|---|---|---:|---|
+| `amount` | int64 string | Yes | Positive; no decimal/exponent notation |
+| `currency` | string | Yes | Uppercase ISO 4217 alpha-3 |
+| `beneficiary_id` | string | Conditional | Exactly one of ID or inline beneficiary |
+| `beneficiary` | object | Conditional | Same shape as `POST /v1/beneficiaries` |
+| `reference` | string | Yes | 1–255 trimmed characters |
+| `description` | string | No | Up to 500 characters |
+| `metadata` | object | No | Up to 50 string pairs; key 100, value 500 characters |
+
+Response (`202 Accepted` for a new payout; `200 OK` for replay):
+
+```json
+{
+  "id": "pout_...",
+  "status": "processing",
+  "amount": "125000",
+  "currency": "VND",
+  "reference": "order_456",
+  "beneficiary": {
+    "id": "ben_...",
+    "name": "Example Recipient",
+    "account_last4": "7890"
+  },
+  "rail": { "type": "bank_transfer", "transaction_id": null },
+  "metadata": { "order_id": "order_456" },
+  "created_at": "2026-09-02T12:00:00.000Z",
+  "processing_at": "2026-09-02T12:00:00.000Z",
+  "completed_at": null,
+  "failed_at": null,
+  "reversed_at": null,
+  "failure": null
+}
+```
+
+### Idempotency
+
+`Idempotency-Key` is required, non-empty, and at most 255 characters. The
+server stores the key and a canonical request hash within the tenant and
+environment:
+
+- same key and same input: original payout, `Idempotent-Replayed: true`;
+- same key and different input: `409 duplicate_payout`.
+
+Keep one key across timeouts and network retries. A replay returns the original
+payout even if account configuration changed afterward.
+
+## Retrieve
+
+```http
+GET /v1/payouts/{payout_id}
+```
+
+Cross-tenant and cross-environment IDs return `payout_not_found`.
+
+## List
+
+```http
+GET /v1/payouts?status=processing&reference=order_456&limit=50
+```
+
+| Query | Rules |
+|---|---|
+| `status` | `created`, `processing`, `completed`, `failed`, or `reversed` |
+| `reference` | Exact value; up to 255 characters |
+| `beneficiary_id` | Exact value; up to 128 characters |
+| `created_after` | ISO 8601 with offset |
+| `created_before` | ISO 8601 with offset; later than `created_after` |
+| `limit` | 1–100; default 50 |
+| `cursor` | Opaque `next_cursor` from the prior response |
+
+```json
+{
+  "data": [{ "id": "pout_...", "status": "processing" }],
+  "next_cursor": null
+}
+```
+
+## Status lifecycle
+
+| Status | Meaning | Terminal |
+|---|---|---|
+| `created` | Held for review. | No |
+| `processing` | Queued, submitting, externally pending, or recovering an unknown outcome. | No |
+| `completed` | Delivery was reported successful. | Yes, unless later reversed |
+| `failed` | The payout will not complete. | Yes |
+| `reversed` | A completed payout was reversed. | Yes |
+
+`POST /v1/payouts/{payout_id}/cancel` currently returns
+`409 payout_not_cancelable`. The API never reports cancellation unless it can
+be guaranteed.
+
+## Errors
+
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "Request validation failed.",
+    "request_id": "req_..."
+  }
+}
+```
+
+| Code | Typical HTTP | Meaning |
+|---|---:|---|
+| `invalid_request` | 400 | Malformed body, query, mode, amount, or idempotency header. |
+| `invalid_beneficiary` | 400 | Beneficiary fields/state or ownership are invalid. |
+| `unsupported_currency` | 422 | Currency is not enabled for the beneficiary. |
+| `unsupported_destination` | 422 | No destination route is configured. |
+| `payout_limit_exceeded` | 422 | Configured controls rejected the amount. |
+| `insufficient_balance` | 422 | Available prefund balance cannot cover the reservation. |
+| `duplicate_payout` | 409 | Key reused with different input. |
+| `compliance_rejected` | 422 | Compliance rejected the payout. |
+| `risk_rejected` | 422 | Risk controls rejected the payout. |
+| `rail_unavailable` | 422 or 503 | A configured execution route is unavailable. |
+| `payout_not_found` | 404 | No payout is visible in this tenant/environment. |
+| `payout_not_cancelable` | 409 | Safe cancellation is unavailable. |
+| `configuration_error` | 503 | A required service dependency is unavailable. |
+
+Public messages are generic. Branch on `error.code` and retain `request_id`.
