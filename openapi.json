@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Zennopay Partner API",
+    "title": "Zennopay QR Payments API",
     "version": "1.1.0",
     "description": "Cross-border QR payment intents for Zennopay partners. Server-to-server calls are HMAC-signed. Zennopay mints a short-lived session token on intent creation and returns it as `session_token`; the SDK sends it as a bearer credential on user-initiated scan/confirm/fetch calls, and your backend re-mints it via POST /v1/payment_intents/{intent_id}/session.",
     "contact": {
@@ -26,7 +26,7 @@
   "tags": [
     {
       "name": "Payment Intents",
-      "description": "Create, fetch, confirm, and cancel single-use payment intents."
+      "description": "Create, scan, confirm, fetch, and cancel QR payment intents."
     }
   ],
   "paths": {
@@ -84,6 +84,40 @@
         }
       }
     },
+    "/v1/payment_intents/{intent_id}/scan": {
+      "post": {
+        "summary": "Scan merchant QR",
+        "description": "Submit the raw QR payload for authoritative validation and quote binding. Called by PaymentSheet with an intent-bound session token.",
+        "operationId": "scanMerchantQr",
+        "tags": ["Payment Intents"],
+        "security": [{ "sessionToken": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/IntentIdPath" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ScanRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "QR validated and quote bound",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ScanResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/AuthenticationFailed" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
     "/v1/payment_intents/{intent_id}/session": {
       "post": {
         "summary": "Re-mint session token",
@@ -98,6 +132,14 @@
           { "$ref": "#/components/parameters/HmacNonce" },
           { "$ref": "#/components/parameters/HmacSignature" }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SessionRemintRequest" }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Fresh session token minted",
@@ -163,8 +205,17 @@
           { "sessionToken": [] }
         ],
         "parameters": [
-          { "$ref": "#/components/parameters/IntentIdPath" }
+          { "$ref": "#/components/parameters/IntentIdPath" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ConfirmRequest" }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Intent fetched",
@@ -395,6 +446,74 @@
         "properties": {
           "clean": { "type": "boolean", "description": "Must be true; Zennopay will not move money otherwise." },
           "screened_at": { "type": "string", "format": "date-time", "description": "When the user was last sanctions-screened (ISO 8601)." }
+        }
+      },
+      "SessionRemintRequest": {
+        "type": "object",
+        "required": ["partner_user_id", "kyc_attestation", "sanctions_attestation"],
+        "additionalProperties": false,
+        "properties": {
+          "partner_user_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "kyc_attestation": { "$ref": "#/components/schemas/KycAttestation" },
+          "sanctions_attestation": { "$ref": "#/components/schemas/SanctionsAttestation" }
+        }
+      },
+      "LocalMinorUnits": {
+        "oneOf": [
+          { "type": "string", "pattern": "^[1-9][0-9]*$" },
+          { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+        ],
+        "description": "Positive local-currency minor units. Clients should send the int64 string form."
+      },
+      "ScanRequest": {
+        "type": "object",
+        "required": ["qr_payload"],
+        "additionalProperties": false,
+        "properties": {
+          "qr_payload": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "local_amount_minor_units": { "$ref": "#/components/schemas/LocalMinorUnits" },
+          "duplicate_confirmed": { "type": "boolean" }
+        }
+      },
+      "ScanResult": {
+        "type": "object",
+        "required": ["intent_id", "status", "merchant", "qr_kind", "quote"],
+        "properties": {
+          "intent_id": { "type": "string", "format": "uuid" },
+          "status": { "$ref": "#/components/schemas/IntentStatus" },
+          "merchant": {
+            "type": "object",
+            "required": ["scheme", "name", "city", "country", "mcc"],
+            "properties": {
+              "scheme": { "type": "string" },
+              "name": { "type": ["string", "null"] },
+              "city": { "type": ["string", "null"] },
+              "country": { "type": "string" },
+              "mcc": { "type": ["string", "null"] }
+            }
+          },
+          "qr_kind": { "type": "string", "enum": ["static", "dynamic"] },
+          "quote": {
+            "type": "object",
+            "required": ["quote_id", "quote_version", "amount_usd_cents", "local_amount_minor_units", "local_currency", "expires_at"],
+            "properties": {
+              "quote_id": { "type": "string" },
+              "quote_version": { "type": "integer", "minimum": 1 },
+              "amount_usd_cents": { "type": "integer", "minimum": 1 },
+              "local_amount_minor_units": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+              "local_currency": { "type": "string" },
+              "expires_at": { "type": "integer", "description": "Unix epoch milliseconds." }
+            }
+          }
+        }
+      },
+      "ConfirmRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "quote_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "quote_version": { "type": "integer", "minimum": 1 },
+          "local_amount_minor_units": { "$ref": "#/components/schemas/LocalMinorUnits" }
         }
       },
       "SessionToken": {

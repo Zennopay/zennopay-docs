@@ -39,7 +39,7 @@ access, so the flow is always completable.
 <Steps>
   <Step title="Sandbox end-to-end">
     Run the sandbox config with a session from your sandbox backend and a
-    real VietQR payload (paste-QR works fine). The payout runs on the sandbox
+    real VietQR payload (paste-QR works fine). Delivery runs on the sandbox
     rail and the intent reaches `captured` — assert your `completed` handling
     debits your ledger and renders the receipt, and that your
     [webhook](/api-reference/webhooks) endpoint received
@@ -85,7 +85,7 @@ pre-release checklist on every platform guide.
   <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
     Verify signatures and reconcile terminal states.
   </Card>
-  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+  <Card title="QR Payments limits" icon="gauge-high" href="/fundamentals/limits">
     The corridor limits enforced in both environments.
   </Card>
   <Card title="Authentication" icon="key" href="/authentication">

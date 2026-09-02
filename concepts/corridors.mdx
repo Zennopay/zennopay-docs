@@ -12,7 +12,7 @@ created and cryptographically bound into the checkout session token.
 | Destination | QR scheme | Currency | Corridor code | Availability |
 |---|---|---|---|---|
 | Vietnam | VietQR | VND | `vn_vietqr` | Implemented; account enablement is required in each environment. |
-| Thailand | PromptPay | THB | `th_promptpay` | API and QR parsing preview; payout execution is not currently available. |
+| Thailand | PromptPay | THB | `th_promptpay` | API and QR parsing preview; merchant delivery is not currently available. |
 | Philippines | QR Ph | PHP | — | Not exposed by the current v1 API. |
 
 <Warning>
@@ -44,7 +44,7 @@ enabled for the account.
 - **Local amount format:** base-10 int64 string in satang
 
 The v1 API and QR parser recognize this corridor, but the current service does
-not have a payout execution rail enabled for it. Integrations may test contract
+not have a merchant-delivery rail enabled for it. Integrations may test contract
 and parsing behavior only when explicitly provisioned; do not plan production
 traffic until Zennopay confirms execution availability.
 

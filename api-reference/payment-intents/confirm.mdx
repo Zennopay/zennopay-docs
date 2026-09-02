@@ -1,6 +1,7 @@
 ---
 title: "Confirm payment intent"
-description: "Confirm the bound quote once and durably queue asynchronous payout execution."
+api: "POST /v1/payment_intents/{intent_id}/confirm"
+description: "Confirm the bound quote once and durably queue asynchronous merchant delivery."
 ---
 
 ```http
@@ -32,7 +33,7 @@ and retain it across transport retries.
 
 The response is the full partner-facing payment intent. A successful confirm
 normally returns `authorized`: the wallet side is captured or under recovery,
-and local payout execution is queued or processing. Poll
+and local merchant delivery is queued or processing. Poll
 `GET /v1/payment_intents/{intent_id}` or consume webhooks until a terminal
 status.
 
@@ -49,9 +50,9 @@ status.
 }
 ```
 
-The payout rail is not called inside this HTTP transaction. After an ambiguous
+The delivery rail is not called inside this HTTP transaction. After an ambiguous
 response, read the intent before attempting any further action. The server's
-durable single-flight guard prevents a second debit or payout for the same
+durable single-flight guard prevents a second debit or delivery for the same
 intent.
 
 See [QR Payments](/qr-payments/overview) for statuses and errors.

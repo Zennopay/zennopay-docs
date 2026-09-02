@@ -1,65 +1,60 @@
 ---
-title: "How Zennopay works"
-description: "One picture of the whole system — apps, money, and rails — with links to go deeper."
+title: "How the products fit together"
+description: "The shared API foundation and the different jobs served by QR Payments and Platform Payouts."
 ---
 
-Zennopay sits between a partner fintech's USD wallet and Southeast Asian QR
-rails. The partner pre-funds a USD balance; each payment draws it down, and a
-licensed local payout partner delivers local currency to the merchant. The
-partner app never leaves the foreground — the whole pay experience is the
-native [PaymentSheet](/payments/overview).
+Zennopay exposes two products through the same authenticated API foundation.
+They share HMAC signing, sandbox/live isolation, prefunded balances, durable
+execution, and signed webhooks. Their users, resources, and delivery contracts
+are different.
+
+| | QR Payments | Platform Payouts |
+|---|---|---|
+| Starts from | A user scanning a merchant QR | Your backend requesting a transfer |
+| Primary resource | `payment_intent` | `payout` |
+| Destination | Merchant encoded in the QR | Stored or inline beneficiary |
+| Client surface | Native PaymentSheet SDK | Server-to-server API |
+| Money contract | USD cents plus quoted local minor units | Int64 strings in the payout currency |
+| Completion | Payment-intent status and webhook | Payout status and webhook |
 
 ```mermaid
 flowchart LR
-    subgraph Partner
-        App[Partner app<br/>+ PaymentSheet SDK]
-        BE[Partner backend<br/>creates intent HMAC-signed]
-    end
-    subgraph Zennopay
-        API[Zennopay API<br/>mints session token]
-        FBO[USD FBO account<br/>pre-funded by partner]
-    end
-    subgraph Corridor [Destination corridor]
-        Rail[Licensed local<br/>payout partner]
-        M[Merchant bank account<br/>THB / VND]
-    end
-
-    App -- "checkout session" --> BE
-    BE -- "HMAC-signed API calls" --> API
-    API -- "session token" --> BE
-    App -- "scan / confirm / status<br/>(session token)" --> API
-    API -- "per-payment drawdown" --> FBO
-    FBO -- "USD" --> Rail
-    Rail -- "local-currency payout" --> M
+    Partner[Partner backend] -->|HMAC-signed requests| API[Zennopay API]
+    App[Partner app + PaymentSheet] -->|session token| API
+    API --> QR[QR Payments<br/>payment intent]
+    API --> PP[Platform Payouts<br/>payout]
+    QR --> Merchant[QR merchant destination]
+    PP --> Beneficiary[Bank beneficiary]
+    Prefund[Environment-scoped prefund] --> QR
+    Prefund --> PP
+    QR -. signed event .-> Partner
+    PP -. signed event .-> Partner
 ```
 
-Three things to hold onto:
+## Shared foundation
 
-1. **One credential.** Your backend signs API calls with a long-lived HMAC
-   secret; Zennopay mints the short-lived, single-intent session token your app
-   holds. No key pair to generate or register. See
-   [Authentication](/authentication).
-2. **USD-only custody.** Partner funds sit in a For-Benefit-Of account at
-   Zennopay's US banking partner; all FX happens downstream in the payout
-   partner network. See [Funds flow](/concepts/funds-flow).
-3. **Corridors are locked at intent creation.** Thailand PromptPay
-   (`th_promptpay`) and Vietnam VietQR (`vn_vietqr`) are live, each with
-   [per-user limits](/fundamentals/limits) Zennopay enforces for you.
-   See [Corridors](/concepts/corridors).
+- **Authentication:** your backend signs requests with HMAC. Only QR Payments
+  gives the mobile SDK a short-lived session token.
+- **Isolation:** credentials, resources, balances, and routes are separated
+  between sandbox and live environments.
+- **Durability:** accepted money movement is persisted before an external rail
+  is called.
+- **Reconciliation:** resource IDs, partner references, status reads, and
+  signed webhook events let your backend recover from timeouts and duplicates.
 
-## Go deeper
+## Choose a product
 
 <CardGroup cols={2}>
-  <Card title="Make a payment" icon="qrcode" href="/payments/overview">
-    The PaymentSheet: one call in, one PaymentResult out.
+  <Card title="QR Payments" icon="qrcode" href="/qr-payments/overview">
+    Add a native scan-and-pay checkout to a mobile app.
   </Card>
-  <Card title="Build your session endpoint" icon="server" href="/payments/session-endpoint">
-    The one backend route every payment starts with.
+  <Card title="Platform Payouts" icon="money-bill-transfer" href="/platform-payouts/overview">
+    Send asynchronous bank transfers to beneficiaries from your backend.
   </Card>
-  <Card title="Funds flow" icon="money-bill-transfer" href="/concepts/funds-flow">
-    Pre-fund → FBO → drawdown → local-rail payout.
+  <Card title="Authentication" icon="key" href="/authentication">
+    Implement the shared server-to-server signing contract once.
   </Card>
-  <Card title="Settlement &amp; reconciliation" icon="scale-balanced" href="/concepts/settlement">
-    Daily cycle, reports, and the audit trail.
+  <Card title="Reconciliation" icon="scale-balanced" href="/concepts/settlement">
+    Handle retries, webhooks, and authoritative status reads.
   </Card>
 </CardGroup>

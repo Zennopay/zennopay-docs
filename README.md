@@ -13,18 +13,23 @@ prefunded balance.
 |---|---|
 | `introduction.mdx` | Product overview and routes into each integration |
 | `qr-payments/` | Canonical QR Payments contract, availability, lifecycle, and errors |
-| `quickstart.mdx` | 10-minute onboarding for partner backends |
-| `how-zennopay-works.mdx` | One diagram of the whole system, with links to go deeper |
+| `quickstart.mdx` | QR Payments sandbox tutorial |
+| `how-zennopay-works.mdx` | Product comparison and shared architecture |
 | `payments/` | Accept payments: PaymentSheet overview, session endpoint, iOS, Android, Flutter, React Native, testing |
 | `authentication.mdx` | HMAC-only partner auth + the Zennopay-minted session token, with test vectors |
-| `concepts/` | Funds flow, corridors, settlement & reconciliation |
-| `fundamentals/` | Per-user corridor limits |
-| `platform-payouts/` | Platform Payouts overview, API guide, webhooks, and sandbox tests |
-| `api-reference/` | REST endpoints (Payment Intents, Webhooks) |
+| `concepts/` | QR funds flow and corridors, plus shared reconciliation guidance |
+| `fundamentals/` | QR Payments per-user corridor limits |
+| `platform-payouts/` | Platform Payouts overview, tutorial, field reference, webhooks, and sandbox tests |
+| `api-reference/` | Shared conventions and QR Payment Intent endpoint reference |
 | `changelog.mdx` | Release notes |
 
 Old `/sdks/*` URLs redirect to `/payments/*` via the `redirects` array in
 `docs.json`.
+
+Each concept has one canonical owner: overview pages explain product choice,
+quickstarts teach a happy path, API pages define fields and states, SDK pages
+cover client integration, and `concepts/settlement.mdx` owns shared
+reconciliation guidance.
 
 ## Preview locally
 

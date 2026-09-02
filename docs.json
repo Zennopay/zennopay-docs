@@ -32,7 +32,6 @@
             "group": "Get started",
             "pages": [
               "introduction",
-              "quickstart",
               "how-zennopay-works"
             ]
           },
@@ -40,6 +39,8 @@
             "group": "QR Payments",
             "pages": [
               "qr-payments/overview",
+              "quickstart",
+              "concepts/funds-flow",
               "payments/overview",
               "payments/session-endpoint",
               "payments/ios",
@@ -55,20 +56,14 @@
             "pages": [
               "platform-payouts/overview",
               "platform-payouts/quickstart",
-              "platform-payouts/beneficiaries",
-              "platform-payouts/payouts",
-              "platform-payouts/webhooks",
               "platform-payouts/testing"
             ]
           },
           {
-            "group": "Fundamentals",
+            "group": "Shared foundations",
             "pages": [
               "authentication",
-              "concepts/funds-flow",
-              "concepts/corridors",
-              "concepts/settlement",
-              "fundamentals/limits"
+              "concepts/settlement"
             ]
           },
           {
@@ -90,18 +85,28 @@
               "api-reference/environments",
               "api-reference/playground",
               {
-                "group": "Payment Intents",
+                "group": "QR Payments",
                 "pages": [
+                  "concepts/corridors",
+                  "fundamentals/limits",
                   "api-reference/payment-intents/create",
                   "api-reference/payment-intents/session",
                   "api-reference/payment-intents/scan",
                   "api-reference/payment-intents/confirm",
                   "api-reference/payment-intents/get",
                   "api-reference/payment-intents/receipt-token",
-                  "api-reference/payment-intents/receipt"
+                  "api-reference/payment-intents/receipt",
+                  "api-reference/webhooks"
                 ]
               },
-              "api-reference/webhooks"
+              {
+                "group": "Platform Payouts",
+                "pages": [
+                  "platform-payouts/beneficiaries",
+                  "platform-payouts/payouts",
+                  "platform-payouts/webhooks"
+                ]
+              }
             ]
           }
         ]

@@ -1,13 +1,15 @@
 ---
-title: "API playground"
-description: "Try Zennopay endpoints live. Requests are sent against the sandbox server with your credentials."
+title: "QR Payments API playground"
+description: "Try the QR payment-intent endpoints against the sandbox server."
 ---
 
-Use the interactive playground below to exercise the Zennopay Partner API
+Use the interactive playground below to exercise the QR Payments API
 against the sandbox environment. Every endpoint defined in
 [`openapi.json`](https://github.com/Zennopay/zennopay-docs/blob/main/openapi.json)
 is callable here — request bodies are validated client-side against the
-schema before they're sent.
+schema before they're sent. Platform Payouts is documented separately in the
+[Payouts API reference](/platform-payouts/payouts) and is not yet included in
+this downloadable OpenAPI document.
 
 <Note>
   The playground talks to `https://api.sandbox.zennopay.com`. Use a
@@ -34,6 +36,7 @@ endpoints by tag:
 - **Payment Intents** — `POST /v1/payment_intents`,
   `POST /v1/payment_intents/{intent_id}/session`,
   `POST /v1/payment_intents/{intent_id}/receipt_token`,
+  `POST /v1/payment_intents/{intent_id}/scan`,
   `GET /v1/payment_intents/{intent_id}`,
   `POST /v1/payment_intents/{intent_id}/confirm`,
   `POST /v1/payment_intents/{intent_id}/cancel`

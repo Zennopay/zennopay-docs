@@ -8,6 +8,12 @@ Zennopay balance. The API validates the beneficiary, applies configured
 controls, reserves funds atomically, and durably queues execution. External
 rail calls happen in a background worker after the API transaction commits.
 
+<Note>
+  Platform Payouts is a server-initiated transfer to a beneficiary. It is not
+  the merchant-delivery step inside [QR Payments](/qr-payments/overview), and
+  it does not use PaymentSheet or a payment intent.
+</Note>
+
 <Info>
   A `202 Accepted` response means the payout is durable and processing. It is
   not proof that the beneficiary received funds. Poll or consume webhooks until
@@ -49,21 +55,10 @@ rail calls happen in a background worker after the API transaction commits.
 
 ## Lifecycle
 
-```text
-created -> processing -> completed | failed
-                            completed -> reversed
-```
-
-| Status | Meaning |
-|---|---|
-| `created` | Accepted and held for review. |
-| `processing` | Queued, submitting, externally pending, or recovering an ambiguous outcome. |
-| `completed` | Delivery was reported successful. |
-| `failed` | The payout will not complete. |
-| `reversed` | A previously completed payout was later reversed. |
-
-Internal queue and recovery states are intentionally collapsed into
-`processing`.
+A payout exposes `created`, `processing`, `completed`, `failed`, or `reversed`.
+Internal queue and recovery states are intentionally collapsed into the public
+lifecycle. The [Payouts API reference](/platform-payouts/payouts) owns the
+status definitions, filters, cancellation behavior, and errors.
 
 ## Availability
 
