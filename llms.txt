@@ -26,10 +26,13 @@
 - [Test QR Payments](https://docs.zennopay.com/payments/testing.md): Run sandbox and recovery scenarios.
 - [Reopen a receipt](https://docs.zennopay.com/payments/reopen-receipt.md): Present the current receipt for a past payment.
 
-## QR Payments API reference
+## API reference
 
 - [API reference](https://docs.zennopay.com/api-reference/overview.md): Shared conventions and product-specific reference routes.
-- [QR Payments API playground](https://docs.zennopay.com/api-reference/playground.md): Exercise the Payment Intent OpenAPI contract in sandbox.
+- [API playground](https://docs.zennopay.com/api-reference/playground.md): Exercise the QR Payments and Platform Payouts OpenAPI contract in sandbox.
+
+### QR Payments
+
 - [Create payment intent](https://docs.zennopay.com/api-reference/payment-intents/create.md): `POST /v1/payment_intents`.
 - [Re-mint session token](https://docs.zennopay.com/api-reference/payment-intents/session.md): `POST /v1/payment_intents/{id}/session`.
 - [Scan merchant QR](https://docs.zennopay.com/api-reference/payment-intents/scan.md): `POST /v1/payment_intents/{id}/scan`.

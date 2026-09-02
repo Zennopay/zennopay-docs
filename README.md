@@ -20,7 +20,7 @@ prefunded balance.
 | `concepts/` | QR funds flow and corridors, plus shared reconciliation guidance |
 | `fundamentals/` | QR Payments per-user corridor limits |
 | `platform-payouts/` | Platform Payouts overview, tutorial, field reference, webhooks, and sandbox tests |
-| `api-reference/` | Shared conventions and QR Payment Intent endpoint reference |
+| `api-reference/` | Shared conventions and downloadable QR Payments and Platform Payouts OpenAPI reference |
 | `changelog.mdx` | Release notes |
 
 Old `/sdks/*` URLs redirect to `/payments/*` via the `redirects` array in

@@ -45,7 +45,11 @@ Response (`202 Accepted` for a new payout; `200 OK` for replay):
   "id": "pout_...",
   "status": "processing",
   "amount": "125000",
+  "recipient_amount": "125000",
   "currency": "VND",
+  "fee_details": { "zennopay": "0", "rail": "0" },
+  "fee": "0",
+  "total": "125000",
   "reference": "order_456",
   "beneficiary": {
     "id": "ben_...",
@@ -62,6 +66,11 @@ Response (`202 Accepted` for a new payout; `200 OK` for replay):
   "failure": null
 }
 ```
+
+`amount` is the requested payout amount, `recipient_amount` is the amount sent
+to the destination, `fee_details` contains the fee components, `fee` is their
+sum, and `total` is the amount reserved from prefund. All five values use the
+same int64-string money format; configured values vary by enabled route.
 
 ### Idempotency
 
@@ -101,10 +110,12 @@ GET /v1/payouts?status=processing&reference=order_456&limit=50
 
 ```json
 {
-  "data": [{ "id": "pout_...", "status": "processing" }],
+  "data": [],
   "next_cursor": null
 }
 ```
+
+Each item in `data` uses the complete payout response shape shown above.
 
 ## Status lifecycle
 
@@ -143,7 +154,7 @@ be guaranteed.
 | `duplicate_payout` | 409 | Key reused with different input. |
 | `compliance_rejected` | 422 | Compliance rejected the payout. |
 | `risk_rejected` | 422 | Risk controls rejected the payout. |
-| `rail_unavailable` | 422 or 503 | A configured execution route is unavailable. |
+| `rail_unavailable` | 422 | No eligible execution route is currently available. |
 | `payout_not_found` | 404 | No payout is visible in this tenant/environment. |
 | `payout_not_cancelable` | 409 | Safe cancellation is unavailable. |
 | `configuration_error` | 503 | A required service dependency is unavailable. |

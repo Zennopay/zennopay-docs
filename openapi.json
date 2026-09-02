@@ -1,13 +1,17 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Zennopay QR Payments API",
-    "version": "1.1.0",
-    "description": "Cross-border QR payment intents for Zennopay partners. Server-to-server calls are HMAC-signed. Zennopay mints a short-lived session token on intent creation and returns it as `session_token`; the SDK sends it as a bearer credential on user-initiated scan/confirm/fetch calls, and your backend re-mints it via POST /v1/payment_intents/{intent_id}/session.",
+    "title": "Zennopay Partner API",
+    "version": "1.2.0",
+    "description": "QR Payments and Platform Payouts for Zennopay partners. Server-to-server calls are HMAC-signed. QR Payments uses short-lived client session tokens for user-initiated SDK calls. Platform Payouts uses asynchronous server-to-server resources funded from an environment-scoped prefund balance.",
     "contact": {
       "name": "Zennopay Support",
       "email": "support@zennopay.com",
       "url": "https://zennopay.com"
+    },
+    "license": {
+      "name": "Proprietary",
+      "identifier": "LicenseRef-Zennopay-Proprietary"
     }
   },
   "servers": [
@@ -27,6 +31,14 @@
     {
       "name": "Payment Intents",
       "description": "Create, scan, confirm, fetch, and cancel QR payment intents."
+    },
+    {
+      "name": "Beneficiaries",
+      "description": "Create reusable, tenant- and environment-scoped bank destinations for Platform Payouts."
+    },
+    {
+      "name": "Platform Payouts",
+      "description": "Create, retrieve, list, and inspect asynchronous payouts."
     }
   ],
   "paths": {
@@ -205,17 +217,8 @@
           { "sessionToken": [] }
         ],
         "parameters": [
-          { "$ref": "#/components/parameters/IntentIdPath" },
-          { "$ref": "#/components/parameters/IdempotencyKey" }
+          { "$ref": "#/components/parameters/IntentIdPath" }
         ],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/ConfirmRequest" }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Intent fetched",
@@ -282,8 +285,17 @@
         "tags": ["Payment Intents"],
         "security": [{ "sessionToken": [] }],
         "parameters": [
-          { "$ref": "#/components/parameters/IntentIdPath" }
+          { "$ref": "#/components/parameters/IntentIdPath" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ConfirmRequest" }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Intent confirmed",
@@ -326,6 +338,189 @@
           "403": { "$ref": "#/components/responses/AuthorizationFailed" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v1/beneficiaries": {
+      "post": {
+        "summary": "Create beneficiary",
+        "description": "Create a reusable bank destination in the authenticated tenant and environment. The full account number is never returned.",
+        "operationId": "createBeneficiary",
+        "tags": ["Beneficiaries"],
+        "security": [{ "hmacAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/HmacKeyId" },
+          { "$ref": "#/components/parameters/HmacTimestamp" },
+          { "$ref": "#/components/parameters/HmacNonce" },
+          { "$ref": "#/components/parameters/HmacSignature" },
+          { "$ref": "#/components/parameters/PayoutModeHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BeneficiaryInput" },
+              "example": {
+                "type": "bank_account",
+                "name": "Example Recipient",
+                "destination_country": "VN",
+                "currency": "VND",
+                "account_number": "1234567890",
+                "bank_code": "VCB"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Beneficiary created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Beneficiary" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/PayoutInvalidRequest" },
+          "401": { "$ref": "#/components/responses/AuthenticationFailed" },
+          "503": { "$ref": "#/components/responses/PayoutUnavailable" }
+        }
+      }
+    },
+    "/v1/payouts": {
+      "post": {
+        "summary": "Create payout",
+        "description": "Validate, reserve prefund, and durably enqueue an asynchronous payout. A new payout returns 202; an identical idempotent replay returns the original payout with 200.",
+        "operationId": "createPayout",
+        "tags": ["Platform Payouts"],
+        "security": [{ "hmacAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/HmacKeyId" },
+          { "$ref": "#/components/parameters/HmacTimestamp" },
+          { "$ref": "#/components/parameters/HmacNonce" },
+          { "$ref": "#/components/parameters/HmacSignature" },
+          { "$ref": "#/components/parameters/PayoutModeHeader" },
+          { "$ref": "#/components/parameters/PayoutIdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePayoutRequest" },
+              "example": {
+                "amount": "125000",
+                "currency": "VND",
+                "beneficiary_id": "ben_0123456789abcdef01234567",
+                "reference": "order_456",
+                "description": "Order settlement",
+                "metadata": { "order_id": "order_456" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Payout accepted and queued",
+            "headers": {
+              "Idempotent-Replayed": {
+                "description": "False for a newly accepted payout.",
+                "schema": { "type": "string", "enum": ["false"] }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Payout" } } }
+          },
+          "200": {
+            "description": "Original payout returned for an identical idempotent replay",
+            "headers": {
+              "Idempotent-Replayed": {
+                "description": "True when the original payout is replayed.",
+                "schema": { "type": "string", "enum": ["true"] }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Payout" } } }
+          },
+          "400": { "$ref": "#/components/responses/PayoutInvalidRequest" },
+          "401": { "$ref": "#/components/responses/AuthenticationFailed" },
+          "409": { "$ref": "#/components/responses/PayoutConflict" },
+          "422": { "$ref": "#/components/responses/PayoutUnprocessable" },
+          "503": { "$ref": "#/components/responses/PayoutUnavailable" }
+        }
+      },
+      "get": {
+        "summary": "List payouts",
+        "description": "List payouts visible in the authenticated tenant and environment, newest first, using opaque cursor pagination.",
+        "operationId": "listPayouts",
+        "tags": ["Platform Payouts"],
+        "security": [{ "hmacAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/HmacKeyId" },
+          { "$ref": "#/components/parameters/HmacTimestamp" },
+          { "$ref": "#/components/parameters/HmacNonce" },
+          { "$ref": "#/components/parameters/HmacSignature" },
+          { "$ref": "#/components/parameters/PayoutModeHeader" },
+          { "$ref": "#/components/parameters/PayoutStatusQuery" },
+          { "$ref": "#/components/parameters/PayoutReferenceQuery" },
+          { "$ref": "#/components/parameters/PayoutBeneficiaryQuery" },
+          { "$ref": "#/components/parameters/PayoutCreatedAfterQuery" },
+          { "$ref": "#/components/parameters/PayoutCreatedBeforeQuery" },
+          { "$ref": "#/components/parameters/PayoutLimitQuery" },
+          { "$ref": "#/components/parameters/PayoutCursorQuery" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payout page",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PayoutList" } } }
+          },
+          "400": { "$ref": "#/components/responses/PayoutInvalidRequest" },
+          "401": { "$ref": "#/components/responses/AuthenticationFailed" }
+        }
+      }
+    },
+    "/v1/payouts/{payout_id}": {
+      "get": {
+        "summary": "Get payout",
+        "description": "Retrieve the authoritative public state of a payout. Unknown, cross-tenant, and cross-environment identifiers return the same not-found error.",
+        "operationId": "getPayout",
+        "tags": ["Platform Payouts"],
+        "security": [{ "hmacAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/PayoutIdPath" },
+          { "$ref": "#/components/parameters/HmacKeyId" },
+          { "$ref": "#/components/parameters/HmacTimestamp" },
+          { "$ref": "#/components/parameters/HmacNonce" },
+          { "$ref": "#/components/parameters/HmacSignature" },
+          { "$ref": "#/components/parameters/PayoutModeHeader" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payout fetched",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Payout" } } }
+          },
+          "400": { "$ref": "#/components/responses/PayoutInvalidRequest" },
+          "401": { "$ref": "#/components/responses/AuthenticationFailed" },
+          "404": { "$ref": "#/components/responses/PayoutNotFound" }
+        }
+      }
+    },
+    "/v1/payouts/{payout_id}/cancel": {
+      "post": {
+        "summary": "Cancel payout",
+        "description": "Request cancellation. Payouts v1 fails closed and returns payout_not_cancelable for every known payout because cancellation cannot currently be guaranteed.",
+        "operationId": "cancelPayout",
+        "tags": ["Platform Payouts"],
+        "security": [{ "hmacAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/PayoutIdPath" },
+          { "$ref": "#/components/parameters/HmacKeyId" },
+          { "$ref": "#/components/parameters/HmacTimestamp" },
+          { "$ref": "#/components/parameters/HmacNonce" },
+          { "$ref": "#/components/parameters/HmacSignature" },
+          { "$ref": "#/components/parameters/PayoutModeHeader" }
+        ],
+        "responses": {
+          "400": { "$ref": "#/components/responses/PayoutInvalidRequest" },
+          "401": { "$ref": "#/components/responses/AuthenticationFailed" },
+          "404": { "$ref": "#/components/responses/PayoutNotFound" },
+          "409": { "$ref": "#/components/responses/PayoutConflict" }
         }
       }
     }
@@ -391,6 +586,80 @@
         "required": true,
         "schema": { "type": "string", "format": "uuid", "example": "0198f31a-7c2b-7d91-9fa2-112233445566" },
         "description": "Zennopay payment intent ID."
+      },
+      "PayoutModeHeader": {
+        "name": "X-Zennopay-Mode",
+        "in": "header",
+        "required": false,
+        "schema": { "type": "string", "enum": ["test", "live"] },
+        "description": "Optional assertion of the credential environment. It cannot switch environments; a mismatch is rejected."
+      },
+      "PayoutIdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "description": "Required for payout creation. Reuse the same key for the same logical request across retries."
+      },
+      "PayoutIdPath": {
+        "name": "payout_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^pout_[a-f0-9]{32}$",
+          "example": "pout_0198f31a7c2b7d919fa2112233445566"
+        },
+        "description": "Opaque Zennopay payout identifier."
+      },
+      "PayoutStatusQuery": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "#/components/schemas/PayoutStatus" },
+        "description": "Return only payouts in this public status."
+      },
+      "PayoutReferenceQuery": {
+        "name": "reference",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "description": "Match the exact partner reference."
+      },
+      "PayoutBeneficiaryQuery": {
+        "name": "beneficiary_id",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "description": "Match an exact beneficiary identifier."
+      },
+      "PayoutCreatedAfterQuery": {
+        "name": "created_after",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "format": "date-time" },
+        "description": "Return payouts created after this ISO 8601 timestamp."
+      },
+      "PayoutCreatedBeforeQuery": {
+        "name": "created_before",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "format": "date-time" },
+        "description": "Return payouts created before this ISO 8601 timestamp. Must be later than created_after."
+      },
+      "PayoutLimitQuery": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 },
+        "description": "Maximum payouts to return."
+      },
+      "PayoutCursorQuery": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "minLength": 1 },
+        "description": "Opaque next_cursor value from the preceding page."
       }
     },
     "schemas": {
@@ -594,6 +863,212 @@
           }
         }
       },
+      "BeneficiaryInput": {
+        "type": "object",
+        "required": ["name", "destination_country", "currency", "account_number", "bank_code"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "type": "string", "const": "bank_account", "default": "bank_account" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "destination_country": { "type": "string", "pattern": "^[A-Z]{2}$", "example": "VN" },
+          "currency": { "type": "string", "pattern": "^[A-Z]{3}$", "example": "VND" },
+          "account_number": { "type": "string", "minLength": 3, "maxLength": 64, "writeOnly": true },
+          "bank_code": { "type": "string", "minLength": 1, "maxLength": 64 }
+        }
+      },
+      "Beneficiary": {
+        "type": "object",
+        "required": ["id", "type", "name", "destination_country", "currency", "bank_code", "account_last4", "created_at"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^ben_[a-f0-9]{24}$", "example": "ben_0123456789abcdef01234567" },
+          "type": { "type": "string", "const": "bank_account" },
+          "name": { "type": "string" },
+          "destination_country": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "bank_code": { "type": "string" },
+          "account_last4": { "type": "string", "minLength": 1, "maxLength": 4 },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PayoutStatus": {
+        "type": "string",
+        "enum": ["created", "processing", "completed", "failed", "reversed"],
+        "description": "Public payout lifecycle status."
+      },
+      "PayoutMoney": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "description": "Non-negative whole minor units encoded as a base-10 signed-int64 string. VND uses whole dong."
+      },
+      "PayoutMetadata": {
+        "type": "object",
+        "maxProperties": 50,
+        "propertyNames": { "maxLength": 100 },
+        "additionalProperties": { "type": "string", "maxLength": 500 },
+        "description": "Partner-defined string metadata."
+      },
+      "CreatePayoutRequest": {
+        "type": "object",
+        "required": ["amount", "currency", "reference"],
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "description": "Positive whole minor units encoded as a base-10 signed-int64 string. VND uses whole dong."
+          },
+          "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "beneficiary_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "beneficiary": { "$ref": "#/components/schemas/BeneficiaryInput" },
+          "reference": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "description": { "type": "string", "maxLength": 500 },
+          "metadata": { "$ref": "#/components/schemas/PayoutMetadata" }
+        },
+        "oneOf": [
+          {
+            "required": ["beneficiary_id"],
+            "properties": {
+              "beneficiary_id": {}
+            },
+            "not": {
+              "required": ["beneficiary"],
+              "properties": { "beneficiary": {} }
+            }
+          },
+          {
+            "required": ["beneficiary"],
+            "properties": {
+              "beneficiary": {}
+            },
+            "not": {
+              "required": ["beneficiary_id"],
+              "properties": { "beneficiary_id": {} }
+            }
+          }
+        ]
+      },
+      "PayoutBeneficiarySummary": {
+        "type": "object",
+        "required": ["id", "name", "account_last4"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "account_last4": { "type": "string", "minLength": 1, "maxLength": 4 }
+        }
+      },
+      "PayoutFeeDetails": {
+        "type": "object",
+        "required": ["zennopay", "rail"],
+        "additionalProperties": false,
+        "properties": {
+          "zennopay": { "$ref": "#/components/schemas/PayoutMoney" },
+          "rail": { "$ref": "#/components/schemas/PayoutMoney" }
+        }
+      },
+      "PayoutRail": {
+        "type": "object",
+        "required": ["type", "transaction_id"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "type": "string", "const": "bank_transfer" },
+          "transaction_id": { "type": ["string", "null"] }
+        }
+      },
+      "PayoutFailure": {
+        "type": "object",
+        "required": ["code", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string", "description": "Generic public failure summary." }
+        }
+      },
+      "Payout": {
+        "type": "object",
+        "required": ["id", "status", "amount", "recipient_amount", "currency", "fee_details", "fee", "total", "reference", "beneficiary", "rail", "metadata", "created_at", "processing_at", "completed_at", "failed_at", "reversed_at", "failure"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^pout_[a-f0-9]{32}$", "example": "pout_0198f31a7c2b7d919fa2112233445566" },
+          "status": { "$ref": "#/components/schemas/PayoutStatus" },
+          "amount": { "$ref": "#/components/schemas/PayoutMoney" },
+          "recipient_amount": { "$ref": "#/components/schemas/PayoutMoney" },
+          "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "fee_details": { "$ref": "#/components/schemas/PayoutFeeDetails" },
+          "fee": { "$ref": "#/components/schemas/PayoutMoney" },
+          "total": { "$ref": "#/components/schemas/PayoutMoney" },
+          "reference": { "type": "string" },
+          "beneficiary": { "$ref": "#/components/schemas/PayoutBeneficiarySummary" },
+          "rail": { "$ref": "#/components/schemas/PayoutRail" },
+          "metadata": { "$ref": "#/components/schemas/PayoutMetadata" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "processing_at": { "type": ["string", "null"], "format": "date-time" },
+          "completed_at": { "type": ["string", "null"], "format": "date-time" },
+          "failed_at": { "type": ["string", "null"], "format": "date-time" },
+          "reversed_at": { "type": ["string", "null"], "format": "date-time" },
+          "failure": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/PayoutFailure" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "example": {
+          "id": "pout_0198f31a7c2b7d919fa2112233445566",
+          "status": "processing",
+          "amount": "125000",
+          "recipient_amount": "125000",
+          "currency": "VND",
+          "fee_details": { "zennopay": "0", "rail": "0" },
+          "fee": "0",
+          "total": "125000",
+          "reference": "order_456",
+          "beneficiary": {
+            "id": "ben_0123456789abcdef01234567",
+            "name": "Example Recipient",
+            "account_last4": "7890"
+          },
+          "rail": { "type": "bank_transfer", "transaction_id": null },
+          "metadata": { "order_id": "order_456" },
+          "created_at": "2026-09-02T12:00:00.000Z",
+          "processing_at": "2026-09-02T12:00:00.000Z",
+          "completed_at": null,
+          "failed_at": null,
+          "reversed_at": null,
+          "failure": null
+        }
+      },
+      "PayoutList": {
+        "type": "object",
+        "required": ["data", "next_cursor"],
+        "additionalProperties": false,
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Payout" } },
+          "next_cursor": { "type": ["string", "null"], "description": "Opaque cursor for the next page, or null when exhausted." }
+        }
+      },
+      "PayoutErrorCode": {
+        "type": "string",
+        "enum": ["invalid_request", "invalid_beneficiary", "unsupported_currency", "unsupported_destination", "payout_limit_exceeded", "insufficient_balance", "duplicate_payout", "compliance_rejected", "risk_rejected", "rail_unavailable", "payout_not_found", "payout_not_cancelable", "configuration_error"]
+      },
+      "PayoutError": {
+        "type": "object",
+        "required": ["error"],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message", "request_id"],
+            "additionalProperties": false,
+            "properties": {
+              "code": { "$ref": "#/components/schemas/PayoutErrorCode" },
+              "message": { "type": "string", "description": "Generic public summary. Internal provider and compliance reasons are not exposed." },
+              "request_id": { "type": "string", "description": "Request correlation identifier." }
+            }
+          }
+        }
+      },
       "Error": {
         "type": "object",
         "required": ["error"],
@@ -633,6 +1108,26 @@
       "Conflict": {
         "description": "409 — Operation conflicts with current resource state.",
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": { "code": "conflict", "message": "Resource is in a conflicting state.", "request_id": "req_..." } } } }
+      },
+      "PayoutInvalidRequest": {
+        "description": "400 — Payout request body, query, mode assertion, or beneficiary failed validation.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PayoutError" }, "example": { "error": { "code": "invalid_request", "message": "Request validation failed.", "request_id": "req_..." } } } }
+      },
+      "PayoutNotFound": {
+        "description": "404 — No payout is visible in the authenticated tenant and environment.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PayoutError" }, "example": { "error": { "code": "payout_not_found", "message": "Payout not found.", "request_id": "req_..." } } } }
+      },
+      "PayoutConflict": {
+        "description": "409 — The idempotency key conflicts or the payout cannot be cancelled.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PayoutError" }, "examples": { "duplicate": { "value": { "error": { "code": "duplicate_payout", "message": "Idempotency key was already used for a different request.", "request_id": "req_..." } } }, "not_cancelable": { "value": { "error": { "code": "payout_not_cancelable", "message": "Payout cannot be canceled.", "request_id": "req_..." } } } } } }
+      },
+      "PayoutUnprocessable": {
+        "description": "422 — The request is valid JSON but cannot be accepted under destination, currency, balance, risk, compliance, or route controls.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PayoutError" }, "example": { "error": { "code": "insufficient_balance", "message": "Insufficient available balance.", "request_id": "req_..." } } } }
+      },
+      "PayoutUnavailable": {
+        "description": "503 — A required Platform Payouts dependency is unavailable or unconfigured.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PayoutError" }, "example": { "error": { "code": "configuration_error", "message": "Payout service is unavailable.", "request_id": "req_..." } } } }
       }
     }
   }

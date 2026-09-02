@@ -1,5 +1,6 @@
 ---
 title: "Beneficiaries"
+api: "POST /v1/beneficiaries"
 description: "Create reusable, tenant-scoped bank destinations for payouts."
 ---
 
@@ -12,7 +13,7 @@ Content-Type: application/json
 
 | Field | Type | Required | Rules |
 |---|---|---:|---|
-| `type` | string | Yes | `bank_account` |
+| `type` | string | No | `bank_account`; defaults to `bank_account` |
 | `name` | string | Yes | 1–200 characters after trimming |
 | `destination_country` | string | Yes | Uppercase ISO 3166-1 alpha-2 |
 | `currency` | string | Yes | Uppercase ISO 4217 alpha-3 |
