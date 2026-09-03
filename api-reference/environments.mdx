@@ -1,84 +1,53 @@
 ---
 title: "Environments"
-description: "Base URLs for the Zennopay Partner API across production and sandbox."
+description: "Current base URLs and isolation rules for sandbox and live API traffic."
 ---
 
-Zennopay exposes two partner-facing environments. Both speak the same API; they
-differ only in which keys, FBO accounts, and payout-provider rails they point
-at.
+Zennopay exposes isolated sandbox and live environments. They share API
+contracts but do not share credentials, balances, beneficiaries, payouts, or
+configuration.
 
-## Base URLs
+## Canonical base URLs
 
-| Environment | Base URL | Use it for |
-|---|---|---|
-| **Production** | `https://api.zennopay.com` | Live partner traffic. Real money. Production HMAC keys. |
-| **Sandbox** | `https://api.sandbox.zennopay.com` | Integration, QA, and demos. Sandbox HMAC keys only — production keys are rejected by the sandbox host. |
-
-<Note>
-  All endpoints are mounted under `/v1`. Example:
-  `https://api.zennopay.com/v1/payment_intents`.
-</Note>
-
-### Legacy domain hosts
-
-`zennopay.com` is now the canonical domain, but **the `zennopay.in` hosts
-continue to be served** — nothing is being switched off.
-
-| Legacy host | Canonical host | Status |
-|---|---|---|
-| `https://api.zennopay.in` | `https://api.zennopay.com` | Still served |
-| `https://api.sandbox.zennopay.in` | `https://api.sandbox.zennopay.com` | Still served |
-
-<Check>
-  **Existing integrations keep working.** Published Zennopay SDK versions ship
-  the `.in` base URL compiled in, and those builds are fully supported — you do
-  **not** need to release an app update. There is no cutover date. Both domains
-  serve the same API, the same credentials, and the same signing rules; only the
-  hostname differs. New integrations should use `zennopay.com`.
-</Check>
-
-## Picking the right one
-
-- During integration, point every example in this documentation at the
-  **sandbox** base URL. Code snippets default to the production URL for
-  copy-paste readiness in your final integration — swap the host while you're
-  building.
-- Sandbox issues a separate `X-Zennopay-Key-Id` (e.g. `acme_sandbox_2026q2`)
-  and a separate signing secret from production. Never cross the streams.
-- The OpenAPI [playground](/api-reference/playground) is hard-wired to the
-  sandbox host.
-
-## Checkout and console hosts
-
-These are shared across environments — the API host you call determines which
-backend the flow lands on.
-
-| Surface | URL |
+| Environment | Base URL |
 |---|---|
-| Hosted checkout (mobile SDK target) | `https://checkout.zennopay.com` |
-| Partner console | `https://console.zennopay.com` |
+| Live | `https://api.zennopay.com` |
+| Sandbox | `https://api.sandbox.zennopay.com` |
 
-The `.in` equivalents (`checkout.zennopay.in`, `console.zennopay.in`) also
-remain reachable.
-
-## What about staging?
-
-Zennopay also runs an internal **staging** environment for pre-production
-verification of our own deploys. It is not exposed to partners and has no
-public hostname. Partners test against **sandbox**.
-
-## Promotion path
+All endpoints are mounted under `/v1`, for example:
 
 ```text
-your code  --->  api.sandbox.zennopay.com  --(graduation review)-->  api.zennopay.com
+https://api.sandbox.zennopay.com/v1/payment_intents
+https://api.sandbox.zennopay.com/v1/payouts
 ```
 
-(The same path on the legacy `.in` hosts is equally valid and still supported.)
+## Supported alternate hosts
 
-Graduation from sandbox to production is gated on:
+Existing integrations may continue to use:
 
-1. A signed partner agreement and operational runbook on file.
-2. A pre-funded USD float at the Zennopay FBO account.
-3. KYC / sanctions attestation flow verified end-to-end in sandbox.
+| Environment | Supported alternate URL |
+|---|---|
+| Live | `https://api.zennopay.in` |
+| Sandbox | `https://api.sandbox.zennopay.in` |
 
-Email **partners@zennopay.com** to start the graduation review.
+Both hostname families serve the same environment and API contract. New
+integrations should use the canonical `.com` URLs. The host is not part of the
+HMAC canonical request, so switching between equivalent hosts does not change
+request signing.
+
+## Isolation rules
+
+- A sandbox key is rejected by live, and a live key is rejected by sandbox.
+- The server and API-key context bind the environment. For Platform Payouts,
+  optional `X-Zennopay-Mode: test|live` is only an assertion; it cannot promote
+  a test key to live.
+- IDs are environment-scoped. Do not reuse a sandbox beneficiary, payment
+  intent, or payout ID in live mode.
+- Sandbox execution never falls back to a live rail.
+
+## Before live traffic
+
+Live credentials, source-network allowlisting, balances, destination routes,
+beneficiary protection, compliance/risk controls, and webhook verification
+must be enabled for the account. Missing dependencies fail closed. A passing
+sandbox flow does not itself enable live mode.

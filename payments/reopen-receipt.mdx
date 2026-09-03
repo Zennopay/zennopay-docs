@@ -140,7 +140,7 @@ for the full response shape.
 
 Each platform exposes one `presentReceipt` call. Pass the `intentId` from your
 history row and the freshly minted `receiptToken`; give it a `refreshReceiptToken`
-hook so it can re-mint if the token expires while a slow payout is still being
+hook so it can re-mint if the token expires while slow delivery is still being
 polled.
 
 <Tabs>
@@ -244,7 +244,7 @@ polled.
 - **Pending → terminal polling.** If the payment is still settling, the receipt
   opens in a processing state and the SDK polls `GET /receipt` (reusing the same
   token) until it reaches `captured` or `failed`, updating the receipt in place.
-  A slow payout gets honest copy, not a silent spinner.
+  Slow delivery gets honest copy, not a silent spinner.
 - **Refunded state.** A `refunded` receipt renders refund messaging — the amount
   returned and when — instead of a plain success screen, so a user reopening an
   old payment sees the current truth.

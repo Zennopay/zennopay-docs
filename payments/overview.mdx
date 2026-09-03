@@ -62,7 +62,7 @@ merchant in the sandbox.
 
 Every platform has the same shape: one `present` call in, one `PaymentResult`
 out — `completed` / `canceled` / `failed` / `pending` (delivered when the user
-leaves while the payout is still processing, or when polling times out; the
+leaves while merchant delivery is still processing, or when polling times out; the
 payment resolves asynchronously and unspent funds are released automatically).
 
 ## How it works
@@ -80,7 +80,7 @@ sequenceDiagram
     participant App as Partner app<br/>(+ PaymentSheet SDK)
     participant BE as Partner backend
     participant ZP as Zennopay API
-    participant Rail as Local payout rail<br/>(Vietnam)
+    participant Rail as Local delivery rail<br/>(Vietnam)
 
     U->>App: Tap "Scan & Pay"
     App->>BE: POST /wallet/checkout-session
@@ -93,7 +93,8 @@ sequenceDiagram
     ZP-->>App: merchant + quote-bound amount (VND + USD)
     U->>App: Slide to pay
     App->>ZP: POST /v1/payment_intents/:id/confirm (Bearer, Idempotency-Key)
-    ZP->>Rail: Payout to merchant's bank
+    ZP-->>App: status: authorized
+    ZP->>Rail: Background worker submits merchant delivery
     App->>ZP: GET /v1/payment_intents/:id (poll to terminal)
     ZP-->>App: status: captured
     App-->>U: "Payment sent" → sheet dismisses
@@ -106,12 +107,10 @@ It is documented end to end, with a complete Node.js reference
 implementation, in [Build your session endpoint](/payments/session-endpoint).
 
 <Info>
-  **Trust model.** Your **publishable key** (`pk_...`) identifies your app and
-  is safe to ship in a binary. Your **secret key** (`sk_...`) HMAC-signs
-  server-to-server calls and never leaves your backend. The **session token** the
-  SDK holds is minted by Zennopay, scoped to a single intent, short-lived, and
-  opaque to you. There is no partner key pair to generate. Both keys come from
-  the Zennopay Console → **Developers** tab.
+  **Trust model.** Your HMAC key ID and signing secret stay on your backend.
+  The SDK holds only the Zennopay-minted session token, which is scoped to one
+  intent, short-lived, and opaque to your app. Register each app package or
+  bundle identifier separately; see [Authentication](/authentication).
 </Info>
 
 ## What you don't build
@@ -121,26 +120,29 @@ The SDK owns the entire payment surface, so you never build:
 - **A QR scanner** — camera capture, torch, gallery import, and a paste-QR
   fallback (which also makes the flow testable on simulators).
 - **EMVCo parsing** — the raw payload is validated authoritatively server-side
-  (CRC, tags, merchant extraction). VietQR today, PromptPay next.
+  (CRC, tags, merchant extraction). See [Corridors](/concepts/corridors) for
+  scheme and execution availability.
 - **FX quoting UI** — the sheet shows the bound local amount and the exact USD
   wallet debit, and silently re-quotes when a quote expires.
 - **A confirm surface** — slide-to-pay fires the confirm exactly once, with an
   idempotency key persisted before the network call.
 - **Status polling, retries, and recovery** — including re-minting an expired
   session via your `refreshSession` hook and recovering the true terminal
-  state after a process death mid-confirm. Slow payouts get a processing
+  state after a process death mid-confirm. Slow delivery gets a processing
   state with honest copy, a "taking longer than usual" escalation, and a
   `pending` result if the user leaves early:
 
-  <Frame caption="Payouts are asynchronous. The sheet says so instead of spinning silently, and the user can safely leave.">
+  <Frame caption="Merchant delivery is asynchronous. The sheet says so instead of spinning silently, and the user can safely leave.">
     <img src="/images/sdk-demo/06-sheet-processing.png" width="280" alt="The processing screen: spinner, 'this can take up to 30 seconds', a tip that the merchant may have already received the payment, and a Done button." />
   </Frame>
 - **Per-user regulatory limits** — Zennopay enforces
   [corridor limits](/fundamentals/limits) automatically (Vietnam: ₫5,000,000
   per transaction, ₫10,000,000 per day, ₫25,000,000 per month per user) and
   the sheet renders the right copy.
-- **New corridors** — when a corridor lights up (Thailand PromptPay is next),
-  existing integrations get it with zero client work.
+- **Corridor parsing and binding** — the server checks the QR scheme, country,
+  and currency against the corridor bound into the session. Philippines/QR Ph
+  is not exposed by the current v1 API; Thailand is an API/parsing preview and
+  Vietnam is implemented subject to account enablement.
 - **The receipt surface** — you keep your own transaction-history list, but you
   never build the authoritative receipt view. When a user taps a past payment,
   [`presentReceipt`](/payments/reopen-receipt) reopens the branded Zennopay

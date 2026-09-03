@@ -1,0 +1,76 @@
+---
+title: "Platform Payouts"
+description: "Send asynchronous bank payouts from a prefunded balance with one server-to-server API."
+---
+
+Platform Payouts lets a platform send a bank payout from its prefunded
+Zennopay balance. The API validates the beneficiary, applies configured
+controls, reserves funds atomically, and durably queues execution. External
+rail calls happen in a background worker after the API transaction commits.
+
+<Note>
+  Platform Payouts is a server-initiated transfer to a beneficiary. It is not
+  the merchant-delivery step inside [QR Payments](/qr-payments/overview), and
+  it does not use PaymentSheet or a payment intent.
+</Note>
+
+<Info>
+  A `202 Accepted` response means the payout is durable and processing. It is
+  not proof that the beneficiary received funds. Poll or consume webhooks until
+  the payout becomes `completed`, `failed`, or `reversed`.
+</Info>
+
+## Build the integration
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/platform-payouts/quickstart">
+    Create a beneficiary, submit an idempotent payout, and retrieve its status.
+  </Card>
+  <Card title="Beneficiaries" icon="building-columns" href="/platform-payouts/beneficiaries">
+    Store a reusable bank destination without exposing it in later requests.
+  </Card>
+  <Card title="Payouts API" icon="money-bill-transfer" href="/platform-payouts/payouts">
+    Request and response fields, lifecycle, idempotency, filters, and errors.
+  </Card>
+  <Card title="Payout webhooks" icon="webhook" href="/platform-payouts/webhooks">
+    Verify signed status events and handle at-least-once delivery.
+  </Card>
+  <Card title="Sandbox testing" icon="flask" href="/platform-payouts/testing">
+    Exercise success, failure, processing, ambiguity, and compliance outcomes.
+  </Card>
+</CardGroup>
+
+## Core properties
+
+- **Server-to-server only.** Requests use the same HMAC signing scheme as the
+  Partner API. Never expose the credential to a browser or app.
+- **Int64-safe money.** Every monetary field is a base-10 signed-int64 string.
+  VND values are whole dong—never decimals.
+- **Durable asynchronous execution.** Acceptance and the execution outbox are
+  committed together. Network calls do not run inside the HTTP transaction.
+- **Tenant and environment isolation.** Balances, beneficiaries, payouts, and
+  routes are bound to the authenticated tenant and test/live mode.
+- **Stable idempotency.** Retrying the same request with the same key returns
+  the original payout. Reusing a key for different input fails.
+
+## Lifecycle
+
+A payout exposes `created`, `processing`, `completed`, `failed`, or `reversed`.
+Internal queue and recovery states are intentionally collapsed into the public
+lifecycle. The [Payouts API reference](/platform-payouts/payouts) owns the
+status definitions, filters, cancellation behavior, and errors.
+
+## Availability
+
+Destination and currency availability is enabled per account and environment.
+Do not infer Platform Payouts coverage from QR Payments coverage. A destination
+is usable only when beneficiary creation and a payout readiness test succeed in
+the intended environment.
+
+## Live prerequisites
+
+Before live traffic, Zennopay must provision live credentials, source-network
+allowlisting, a prefund balance in each settlement currency, destination
+routes, compliance and risk controls, beneficiary protection keys, and a
+signed HTTPS webhook endpoint. Missing dependencies fail closed. Sandbox
+success does not itself enable live mode.

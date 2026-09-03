@@ -1,0 +1,58 @@
+---
+title: "Confirm payment intent"
+api: "POST /v1/payment_intents/{intent_id}/confirm"
+description: "Confirm the bound quote once and durably queue asynchronous merchant delivery."
+---
+
+```http
+POST /v1/payment_intents/{intent_id}/confirm
+Authorization: Bearer <session_token>
+Idempotency-Key: confirm-8d92-v1
+Content-Type: application/json
+```
+
+Confirm consumes the session token's one-time `jti`. Send an idempotency key
+and retain it across transport retries.
+
+## Body
+
+```json
+{
+  "quote_id": "quote_...",
+  "quote_version": 1
+}
+```
+
+| Field | Type | Required | Rules |
+|---|---|---:|---|
+| `quote_id` | string | No | Recommended; must match the quote bound by scan |
+| `quote_version` | positive integer | No | Recommended; must not be superseded |
+| `local_amount_minor_units` | int64 string | No | Rejected when it changes a dynamic QR amount |
+
+## Response
+
+The response is the full partner-facing payment intent. A successful confirm
+normally returns `authorized`: the wallet side is captured or under recovery,
+and local merchant delivery is queued or processing. Poll
+`GET /v1/payment_intents/{intent_id}` or consume webhooks until a terminal
+status.
+
+```json
+{
+  "id": "0198f31a-7c2b-7d91-9fa2-112233445566",
+  "reconciliation_ref": "zpr_...",
+  "status": "authorized",
+  "amount_usd_cents": 345,
+  "corridor": "vn_vietqr",
+  "quote_local_amount_minor_units": "3500000",
+  "created_at": "2026-09-02T12:00:00.000Z",
+  "updated_at": "2026-09-02T12:00:03.000Z"
+}
+```
+
+The delivery rail is not called inside this HTTP transaction. After an ambiguous
+response, read the intent before attempting any further action. The server's
+durable single-flight guard prevents a second debit or delivery for the same
+intent.
+
+See [QR Payments](/qr-payments/overview) for statuses and errors.

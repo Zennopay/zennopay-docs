@@ -1,0 +1,79 @@
+---
+title: "QR Payments"
+description: "Let users scan a supported merchant QR and pay without leaving your app."
+---
+
+QR Payments embeds Zennopay's native PaymentSheet in your mobile app. A user
+scans a merchant-presented QR, reviews the bound local-currency quote, confirms
+once, and receives the result in the same app.
+
+<Note>
+  QR Payments is a consumer checkout flow built around a `payment_intent` and
+  the mobile SDK. To send a server-initiated bank transfer to a beneficiary,
+  use [Platform Payouts](/platform-payouts/overview).
+</Note>
+
+## Build the integration
+
+<CardGroup cols={2}>
+  <Card title="QR Payments quickstart" icon="bolt" href="/quickstart">
+    Create a sandbox payment intent and hand its session to PaymentSheet.
+  </Card>
+  <Card title="PaymentSheet" icon="mobile" href="/payments/overview">
+    Choose iOS, Android, Flutter, or React Native.
+  </Card>
+  <Card title="Payment Intent API" icon="code" href="/api-reference/payment-intents/create">
+    Use the endpoint reference for request and response fields.
+  </Card>
+  <Card title="QR corridors" icon="globe" href="/concepts/corridors">
+    Check scheme, currency, and execution availability.
+  </Card>
+  <Card title="QR Payments webhooks" icon="webhook" href="/api-reference/webhooks">
+    Reconcile terminal payment-intent states server-side.
+  </Card>
+  <Card title="Sandbox testing" icon="flask" href="/payments/testing">
+    Exercise scan, confirm, limits, and pending outcomes.
+  </Card>
+</CardGroup>
+
+## How it works
+
+1. Your backend HMAC-signs a request to create a payment intent.
+2. Zennopay returns an intent ID and short-lived session token.
+3. Your app passes both values to PaymentSheet.
+4. PaymentSheet scans and confirms against the intent-bound quote.
+5. Your backend reconciles the final state from a signed webhook or a status
+   read.
+
+The SDK owns camera capture, authoritative QR validation, quote refresh,
+confirm idempotency, status polling, and receipt presentation. Your HMAC secret
+always remains on your backend.
+
+## Money and delivery
+
+The user authorizes a value in integer USD cents. The scanned QR and bound
+quote determine the local amount delivered to the merchant. Local-currency
+minor-unit values are serialized as base-10 int64 strings; VND values are whole
+dong.
+
+Confirming a payment starts asynchronous merchant delivery. The HTTP response
+is not proof of final delivery. Use the
+[payment-intent status reference](/api-reference/payment-intents/get) and
+[QR Payments webhooks](/api-reference/webhooks) as the authoritative contract.
+
+## Product responsibilities
+
+| Your integration owns | Zennopay owns |
+|---|---|
+| User authentication and wallet authorization | Intent, quote, and confirm state |
+| Stable opaque user identifiers | Server-side QR validation |
+| Creating intents from your backend | PaymentSheet and receipt UI |
+| Handling SDK results | Asynchronous rail execution |
+| Persisting webhook events idempotently | Signed status events and status reads |
+
+## Availability
+
+QR scheme support and merchant-delivery execution are separate capabilities. A corridor
+recognized by the API is not necessarily enabled for execution in every
+environment or account. See [QR Payments corridors](/concepts/corridors) for
+the current source of truth.

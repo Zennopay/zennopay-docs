@@ -36,10 +36,11 @@ minutes.
 
 From the Zennopay Console → **Developers** tab:
 
-| Credential | Lives | Used for |
+| Value | Lives | Used for |
 |---|---|---|
-| Publishable key (`pk_test_...` in sandbox; the live-mode key in production) | In your app — safe to ship | Identifies your integration |
-| Secret key (`sk_test_...` in sandbox; the live-mode key in production) + key ID | Server only — never in a client | HMAC-signing server-to-server calls |
+| HMAC key ID | Server only | Selects the signing secret |
+| HMAC signing secret | Server only — never in a client | Signs server-to-server calls |
+| App package or bundle identifier | App configuration and Zennopay allowlist | Identifies the approved mobile app |
 
 <Note>
   **No signing key pair.** There is no partner-held RSA keypair and nothing to
@@ -100,7 +101,7 @@ side — read it off the response and hand it to your app:
 
 ```json
 {
-  "intent_id": "zp_AbCd1234EfGh5678",
+  "intent_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
   "status": "created",
   "amount_usd_cents": 345,
   "corridor": "vn_vietqr",
@@ -126,7 +127,6 @@ import crypto from "node:crypto";
 import express from "express";
 
 const ZENNOPAY_BASE = process.env.ZENNOPAY_BASE_URL!;   // https://api.sandbox.zennopay.com
-                                                         // (api.sandbox.zennopay.in also still served)
 const KEY_ID = process.env.ZENNOPAY_HMAC_KEY_ID!;        // e.g. "acme_sandbox_2026q2"
 const SECRET = process.env.ZENNOPAY_HMAC_SECRET!;        // <your_secret> — server only
 
@@ -199,17 +199,32 @@ app.post("/wallet/checkout-session", async (req, res) => {
 });
 
 // ── Refresh: re-mint the token for the SAME intent ──────────────────────
-// Drives the SDK's refreshSession hook. No new intent, no attestations —
-// just a fresh session_token for the intent that already exists.
+// Drives the SDK's refreshSession hook. Amount and corridor stay bound to
+// the existing intent; current user identity and attestations are sent again.
 app.post("/wallet/checkout-session/:intentId/refresh", async (req, res) => {
   const user = await requireAuthedUser(req);
   const { intentId } = req.params;
   assertUserOwnsIntent(user, intentId); // look up your own record of the intent
 
   const path = `/v1/payment_intents/${intentId}/session`;
+  const body = JSON.stringify({
+    partner_user_id: user.id,
+    kyc_attestation: {
+      verified: true,
+      method: "your_kyc_v2",
+      verified_at: user.kycVerifiedAt,
+      id_type: "passport",
+      id_country: "IN",
+    },
+    sanctions_attestation: {
+      clean: true,
+      screened_at: user.sanctionsScreenedAt,
+    },
+  });
   const resp = await fetch(`${ZENNOPAY_BASE}${path}`, {
     method: "POST",
-    headers: hmacHeaders("POST", path, ""),
+    headers: hmacHeaders("POST", path, body),
+    body,
   });
   if (resp.status !== 200) {
     return res.status(502).json({ error: "session_remint_failed" });
@@ -277,7 +292,7 @@ state, and the cross-user `404` — is in
   <Card title="Authentication" icon="key" href="/authentication">
     The full HMAC signing spec and the session-token contract.
   </Card>
-  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+  <Card title="QR Payments limits" icon="gauge-high" href="/fundamentals/limits">
     The corridor limits enforced against your partner_user_id.
   </Card>
 </CardGroup>

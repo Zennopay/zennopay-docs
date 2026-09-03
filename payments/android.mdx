@@ -72,21 +72,11 @@ ZennopayConfig(
 )
 ```
 
-<Note>
-  **Already shipped on `zennopay.in`?** Nothing to do. Previously published SDK
-  versions resolve `SANDBOX` / `PRODUCTION` to the `api.zennopay.in` hosts, and
-  **those hosts continue to be served** — same API, same credentials. You do not
-  need to ship an app update to stay working. See
-  [Environments](/api-reference/environments#legacy-domain-hosts).
-</Note>
-
 You can also set a process-wide default once with
 `Zennopay.configure(config)` — per-call `config` still overrides it.
 
-Your API keys never live in the app: per payment, your backend
-[creates the intent](/payments/session-endpoint) and Zennopay returns a session
-token. Your backend passes it to your app, and the SDK holds only that
-short-lived token.
+See [Environments](/api-reference/environments) for canonical and supported
+alternate hosts.
 
 ## Present the PaymentSheet
 
@@ -245,15 +235,12 @@ Zennopay look, following system light/dark.
   image) with any VietQR payload string. The backend does the authoritative
   parse either way.
 - **Sandbox end-to-end:** run `ZennopayConfig.SANDBOX` with a session from your
-  sandbox backend; the payout runs on the sandbox rail and the intent reaches
+  sandbox backend; delivery runs on the sandbox rail and the intent reaches
   `captured`.
 - **Fail-fast checks:** pass a blank or mismatched session token and assert an
   immediate `Failed(InvalidJwt)` / `Failed(IntentMismatch)` with no UI.
 - **Physical device:** camera scanning and the runtime-permission prompt are
   the pre-release checklist.
-
-The full sandbox checklist — including limit-blocked payments and pending
-reconciliation — is in [Test your integration](/payments/testing).
 
 ## Under the hood (what you can rely on)
 
@@ -281,7 +268,7 @@ The SDK ships consumer rules; no additional configuration is needed.
   <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
     Reconcile terminal states server-side.
   </Card>
-  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+  <Card title="QR Payments limits" icon="gauge-high" href="/fundamentals/limits">
     The corridor limits Zennopay enforces for you.
   </Card>
 </CardGroup>

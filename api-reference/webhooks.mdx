@@ -1,7 +1,10 @@
 ---
-title: "Webhooks"
-description: "How Zennopay notifies you about payment state changes."
+title: "QR Payments webhooks"
+description: "Verify signed payment-intent lifecycle events."
 ---
+
+This page covers QR Payments events. Platform Payouts has a separate event
+contract in [Payout webhooks](/platform-payouts/webhooks).
 
 <Note>
   Webhook signatures share the HMAC canonicalization scheme used for
@@ -12,7 +15,7 @@ description: "How Zennopay notifies you about payment state changes."
 
 | Event | When it fires |
 |---|---|
-| `payment_intent.captured` | Provider confirmed payout; merchant has been paid |
+| `payment_intent.captured` | The local rail confirmed merchant delivery |
 | `payment_intent.failed` | Final failure; intent will not be retried |
 | `payment_intent.refunded` | Refund completed end-to-end |
 
@@ -33,12 +36,12 @@ during onboarding (distinct from your API signing secret).
 ```typescript
 import crypto from "node:crypto";
 
-function verifyWebhook(headers, rawBody, secret) {
+function verifyWebhook(headers, rawBody, secret, requestPath) {
   const timestamp = headers["x-zennopay-timestamp"];
   const nonce = headers["x-zennopay-nonce"];
   const signature = headers["x-zennopay-signature"];
   const bodyHash = crypto.createHash("sha256").update(rawBody).digest("hex");
-  const canonical = ["POST", "/webhook", timestamp, nonce, bodyHash].join("\n");
+  const canonical = ["POST", requestPath, timestamp, nonce, bodyHash].join("\n") + "\n";
   const expected = crypto.createHmac("sha256", secret).update(canonical).digest("base64");
   return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }

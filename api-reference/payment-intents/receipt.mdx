@@ -22,7 +22,7 @@ directly.
 ## Path parameters
 
 <ParamField path="intent_id" type="string" required>
-  Zennopay intent ID, e.g. `zp_AbCd1234EfGh5678`.
+  Zennopay intent ID, e.g. `0198f31a-7c2b-7d91-9fa2-112233445566`.
 </ParamField>
 
 ## Response
@@ -76,25 +76,21 @@ directly.
 
 ## Example
 
-Example uses the sandbox host. Swap to `https://api.zennopay.com` in
-production. The legacy `api.zennopay.in` hosts are still served for existing
-integrations. See [Environments](/api-reference/environments).
-
 <CodeGroup>
 ```bash Sandbox
-curl https://api.sandbox.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678/receipt \
+curl https://api.sandbox.zennopay.com/v1/payment_intents/0198f31a-7c2b-7d91-9fa2-112233445566/receipt \
   -H "Authorization: Bearer <receiptToken>"
 ```
 
 ```bash Production
-curl https://api.zennopay.com/v1/payment_intents/zp_AbCd1234EfGh5678/receipt \
+curl https://api.zennopay.com/v1/payment_intents/0198f31a-7c2b-7d91-9fa2-112233445566/receipt \
   -H "Authorization: Bearer <receiptToken>"
 ```
 </CodeGroup>
 
 ```json Response
 {
-  "intent_id": "zp_AbCd1234EfGh5678",
+  "intent_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
   "status": "captured",
   "amount_usd_cents": 14000,
   "corridor": "vn_vietqr",

@@ -1,0 +1,63 @@
+---
+title: "Scan merchant QR"
+api: "POST /v1/payment_intents/{intent_id}/scan"
+description: "Submit the raw EMVCo QR payload for authoritative validation and quote binding."
+---
+
+```http
+POST /v1/payment_intents/{intent_id}/scan
+Authorization: Bearer <session_token>
+Content-Type: application/json
+```
+
+The bearer token must be bound to the path intent. Scan verifies but does not
+consume its one-time `jti`, so the same unexpired token can confirm afterward.
+
+## Body
+
+```json
+{
+  "qr_payload": "<raw EMVCo payload>",
+  "local_amount_minor_units": "3500000"
+}
+```
+
+| Field | Type | Required | Rules |
+|---|---|---:|---|
+| `qr_payload` | string | Yes | Raw payload, 1–4096 characters |
+| `local_amount_minor_units` | int64 string | Conditional | Required for static QRs; for dynamic QRs it must be absent or equal the embedded amount |
+| `duplicate_confirmed` | boolean | No | Send `true` only after the user acknowledges a recent duplicate scan |
+
+For compatibility, local amount also accepts a positive safe JSON integer;
+clients should send strings. VND is whole dong.
+
+## Response
+
+```json
+{
+  "intent_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
+  "status": "created",
+  "merchant": {
+    "scheme": "vietqr",
+    "name": "Example Merchant",
+    "city": "HANOI",
+    "country": "VN",
+    "mcc": "5812"
+  },
+  "qr_kind": "static",
+  "quote": {
+    "quote_id": "quote_...",
+    "quote_version": 1,
+    "amount_usd_cents": 345,
+    "local_amount_minor_units": "3500000",
+    "local_currency": "704",
+    "expires_at": 1788350430000
+  }
+}
+```
+
+The server re-parses the payload and enforces checksum, TLV structure, scheme,
+country, currency, and amount binding. Client-parsed fields are not accepted as
+authority for money movement.
+
+See [QR Payments](/qr-payments/overview) for corridor availability and errors.

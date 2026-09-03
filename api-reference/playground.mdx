@@ -1,9 +1,9 @@
 ---
 title: "API playground"
-description: "Try Zennopay endpoints live. Requests are sent against the sandbox server with your credentials."
+description: "Try QR Payments and Platform Payouts endpoints against the sandbox server."
 ---
 
-Use the interactive playground below to exercise the Zennopay Partner API
+Use the interactive playground below to exercise the Zennopay API
 against the sandbox environment. Every endpoint defined in
 [`openapi.json`](https://github.com/Zennopay/zennopay-docs/blob/main/openapi.json)
 is callable here — request bodies are validated client-side against the
@@ -12,7 +12,7 @@ schema before they're sent.
 <Note>
   The playground talks to `https://api.sandbox.zennopay.com`. Use a
   **sandbox** HMAC key (`{partner}_sandbox_*`) — production keys are
-  rejected by the sandbox host. The legacy `api.sandbox.zennopay.in` host is
+  rejected by the sandbox host. The alternate `api.sandbox.zennopay.in` host is
   still served if your client is pinned to it.
 </Note>
 
@@ -25,6 +25,8 @@ schema before they're sent.
   `POST /v1/payment_intents/{intent_id}/confirm`), the `session_token` returned
   by a `POST /v1/payment_intents` call — send it as `Authorization: Bearer`.
   These are the calls the SDK normally makes; you rarely call them by hand.
+- For Platform Payouts, an environment-scoped prefund balance and enabled
+  payout route. Payout calls are server-to-server and remain HMAC-signed.
 
 ## Endpoints
 
@@ -34,9 +36,14 @@ endpoints by tag:
 - **Payment Intents** — `POST /v1/payment_intents`,
   `POST /v1/payment_intents/{intent_id}/session`,
   `POST /v1/payment_intents/{intent_id}/receipt_token`,
+  `POST /v1/payment_intents/{intent_id}/scan`,
   `GET /v1/payment_intents/{intent_id}`,
   `POST /v1/payment_intents/{intent_id}/confirm`,
   `POST /v1/payment_intents/{intent_id}/cancel`
+- **Beneficiaries** — `POST /v1/beneficiaries`
+- **Platform Payouts** — `POST /v1/payouts`, `GET /v1/payouts`,
+  `GET /v1/payouts/{payout_id}`, and
+  `POST /v1/payouts/{payout_id}/cancel`
 
 <Card title="Open the OpenAPI spec" icon="code" href="/openapi.json">
   Raw OpenAPI 3.1 document. Drop this into Postman, Insomnia, or your own

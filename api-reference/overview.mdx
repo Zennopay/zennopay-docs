@@ -1,12 +1,13 @@
 ---
-title: "API Reference"
-description: "REST over HTTPS. JSON in, JSON out. HMAC-signed."
+title: "API reference"
+description: "Shared conventions and routes into the QR Payments and Platform Payouts contracts."
 ---
 
-The Zennopay API has two environments:
+Zennopay exposes QR Payments and Platform Payouts under the same `/v1` API and
+HMAC trust model.
 
 <CodeGroup>
-```bash Production
+```bash Live
 https://api.zennopay.com/v1
 ```
 
@@ -15,46 +16,64 @@ https://api.sandbox.zennopay.com/v1
 ```
 </CodeGroup>
 
-Sandbox credentials are issued during onboarding. See
-[Environments](/api-reference/environments) for the full URL reference, key
-scoping rules, and the path from sandbox to production.
+See [Environments](/api-reference/environments) for alternate hosts and
+isolation rules.
 
-<Note>
-  **Already integrated against `api.zennopay.in`?** Those hosts continue to be
-  served — `zennopay.com` is the new canonical domain, not a replacement that
-  turns the old one off. See
-  [Legacy hosts](/api-reference/environments#legacy-domain-hosts).
-</Note>
+## Shared conventions
 
-## Conventions
+- HTTPS and UTF-8 JSON only.
+- Server-to-server calls use [HMAC authentication](/authentication).
+- Errors use `error.code`, `error.message`, and `error.request_id`.
+- Store resource IDs and idempotency keys as opaque strings.
+- Treat asynchronous resource reads as authoritative after network ambiguity.
 
-- **Transport:** HTTPS only. TLS 1.2+.
-- **Request bodies:** JSON, UTF-8.
-- **Responses:** JSON. Errors follow a consistent envelope (`error.code`,
-  `error.message`, `error.request_id`).
-- **Auth:** every request must be HMAC-signed. See [Authentication](/authentication).
-- **Money:** all amounts are integer USD cents (`amount_usd_cents`). We never
-  return floating-point dollars.
-- **Idempotency:** the HMAC nonce + timestamp combination is rejected on
-  replay (within a 10-minute window). For application-level idempotency, use
-  your own request ID and check intent state before retrying.
+## Money conventions
 
-## Endpoints
+| Product | API representation |
+|---|---|
+| QR Payments | User authorization is integer `amount_usd_cents`; local minor-unit fields are int64 strings. |
+| Platform Payouts | Every monetary field is a base-10 int64 string; VND has no decimal places. |
+
+Never send a floating-point value for a Platform Payout or a local-currency
+minor-unit field.
+
+## QR Payments reference
 
 <CardGroup cols={2}>
-  <Card title="Create payment intent" icon="plus" href="/api-reference/payment-intents/create">
-    `POST /v1/payment_intents` — returns the session token
+  <Card title="Create intent" icon="plus" href="/api-reference/payment-intents/create">
+    Create a payment intent and receive its session token.
   </Card>
-  <Card title="Re-mint session token" icon="rotate" href="/api-reference/payment-intents/session">
-    `POST /v1/payment_intents/{intent_id}/session`
+  <Card title="Scan QR" icon="qrcode" href="/api-reference/payment-intents/scan">
+    Validate a merchant QR and bind its quote.
   </Card>
-  <Card title="Get payment intent" icon="magnifying-glass" href="/api-reference/payment-intents/get">
-    `GET /v1/payment_intents/{intent_id}`
+  <Card title="Confirm intent" icon="check" href="/api-reference/payment-intents/confirm">
+    Confirm once and start asynchronous delivery.
   </Card>
-  <Card title="Mint receipt token" icon="receipt" href="/api-reference/payment-intents/receipt-token">
-    `POST /v1/payment_intents/{intent_id}/receipt_token`
+  <Card title="Get intent" icon="magnifying-glass" href="/api-reference/payment-intents/get">
+    Retrieve authoritative payment state.
   </Card>
-  <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
-    Event types + signature verification
+  <Card title="Session and receipt tokens" icon="key" href="/api-reference/payment-intents/session">
+    Re-mint a checkout session or open a receipt.
+  </Card>
+  <Card title="QR Payments webhooks" icon="webhook" href="/api-reference/webhooks">
+    Verify payment-intent events.
   </Card>
 </CardGroup>
+
+## Platform Payouts reference
+
+<CardGroup cols={2}>
+  <Card title="Beneficiaries" icon="building-columns" href="/platform-payouts/beneficiaries">
+    Create reusable bank destinations.
+  </Card>
+  <Card title="Payouts API" icon="money-bill-transfer" href="/platform-payouts/payouts">
+    Create, retrieve, list, and interpret payouts.
+  </Card>
+  <Card title="Payout webhooks" icon="webhook" href="/platform-payouts/webhooks">
+    Verify payout lifecycle events.
+  </Card>
+</CardGroup>
+
+The downloadable [OpenAPI 3.1 document](/openapi.json) covers the public REST
+routes for both products. Product pages remain the canonical guides for
+lifecycle, retry, webhook, and sandbox behavior.

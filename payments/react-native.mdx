@@ -77,18 +77,8 @@ await presentSheet({
 });
 ```
 
-<Note>
-  **Already shipped on `zennopay.in`?** Nothing to do. Previously published SDK
-  versions resolve the `sandbox` / `production` environments to the
-  `api.zennopay.in` hosts, and **those hosts continue to be served** — same API,
-  same credentials. You do not need to ship an app update to stay working. See
-  [Environments](/api-reference/environments#legacy-domain-hosts).
-</Note>
-
-Your API keys never live in the app: per payment, your backend
-[creates the intent](/payments/session-endpoint) and Zennopay returns a session
-token. Your backend passes it to your app, and the SDK holds only that
-short-lived token.
+See [Environments](/api-reference/environments) for canonical and supported
+alternate hosts.
 
 ## Present the PaymentSheet
 
@@ -220,14 +210,11 @@ natively and can't be overridden.
 - **Simulator/emulator:** no usable camera — the native sheet falls back to
   paste-QR; paste any VietQR payload string.
 - **Sandbox end-to-end:** `{ environment: 'sandbox' }` + a session from your
-  sandbox backend drives the flow to a real `captured` on the sandbox payout
+  sandbox backend drives the flow to a real `captured` on the sandbox delivery
   rail.
 - **Link check:** if `presentSheet` rejects with `native_sdk_unavailable`,
   re-run `pod install` / a full Gradle build — the JS package is installed but
   the native SDK isn't.
-
-The full sandbox checklist — including limit-blocked payments and pending
-reconciliation — is in [Test your integration](/payments/testing).
 
 ## Next steps
 
@@ -241,7 +228,7 @@ reconciliation — is in [Test your integration](/payments/testing).
   <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
     Reconcile terminal states server-side.
   </Card>
-  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+  <Card title="QR Payments limits" icon="gauge-high" href="/fundamentals/limits">
     The corridor limits Zennopay enforces for you.
   </Card>
 </CardGroup>

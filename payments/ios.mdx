@@ -88,18 +88,8 @@ config: .production       // https://api.zennopay.com
 config: ZennopayConfig(apiBaseURL: URL(string: "http://localhost:3000")!)
 ```
 
-<Note>
-  **Already shipped on `zennopay.in`?** Nothing to do. Previously published SDK
-  versions resolve `.sandbox` / `.production` to the `api.zennopay.in` hosts,
-  and **those hosts continue to be served** — same API, same credentials. You do
-  not need to ship an app update to stay working. See
-  [Environments](/api-reference/environments#legacy-domain-hosts).
-</Note>
-
-Your API keys never live in the app: per payment, your backend
-[creates the intent](/payments/session-endpoint) and Zennopay returns a session
-token. Your backend passes it to your app, and the SDK holds only that
-short-lived token.
+See [Environments](/api-reference/environments) for canonical and supported
+alternate hosts.
 
 ## Present the PaymentSheet
 
@@ -174,7 +164,7 @@ mis-paired token fails fast with `.failed` instead of an empty sheet.
 
 ```swift
 public enum PaymentResult: Equatable, Sendable {
-    /// Wallet debited, payout captured.
+    /// Wallet debited, merchant delivery captured.
     case completed(intentID: String)
     /// Terminal non-success, or an unrecoverable in-sheet failure.
     case failed(intentID: String, error: ZennopayError)
@@ -232,7 +222,7 @@ and the flow proceeds identically (the backend does the authoritative parse
 either way). Two useful loops:
 
 1. **Sandbox end-to-end:** run against `.sandbox` with a session from your
-   sandbox backend and a real VietQR payload; the payout runs on the sandbox
+   sandbox backend and a real VietQR payload; delivery runs on the sandbox
    rail and the intent reaches `captured`.
 2. **Fail-fast checks:** pass an empty or mismatched session token and assert
    you get an immediate `.failed(.invalidJWT)` / `.failed(.intentMismatch)`
@@ -265,7 +255,7 @@ including limit-blocked payments and pending reconciliation — is in
   <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
     Reconcile terminal states server-side.
   </Card>
-  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+  <Card title="QR Payments limits" icon="gauge-high" href="/fundamentals/limits">
     The corridor limits Zennopay enforces for you.
   </Card>
 </CardGroup>

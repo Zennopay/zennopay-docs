@@ -1,54 +1,44 @@
 ---
-title: "Settlement & reconciliation"
-description: "How money settles, and what you receive as a partner."
+title: "Reconciliation"
+description: "Recover the authoritative state of QR payments and Platform Payouts."
 ---
 
-Zennopay settles daily against each corridor's payout partner and reconciles
-daily against partner funds. Anything that doesn't balance is held and
-investigated before close.
+Both Zennopay products execute asynchronously. A successful create or confirm
+response proves that an operation was accepted, not that destination delivery
+is final. Your backend should reconcile every operation from durable local
+records, signed webhooks, and authoritative status reads.
 
-## Daily cycle
+## Product-specific sources of truth
 
-Throughout the day, transactions draw down the partner's pre-funded USD float
-as they settle. At end of business day (UTC), Zennopay runs its reconciliation
-pass, tops up downstream payout floats, and confirms that every in-flight
-balance has resolved. Anything still open is flagged for review rather than
-closed.
+| Product | Correlation keys | Authoritative read | Webhook reference |
+|---|---|---|---|
+| QR Payments | Intent ID and `reconciliation_ref` | `GET /v1/payment_intents/{id}` | [QR Payments webhooks](/api-reference/webhooks) |
+| Platform Payouts | Payout ID and your `reference` | `GET /v1/payouts/{id}` | [Payout webhooks](/platform-payouts/webhooks) |
 
-## Stuck transactions
+Each linked product reference owns its lifecycle states and event types. This
+page defines the shared recovery behavior.
 
-If a transaction is stuck mid-flow — a payout-partner timeout with no
-confirmation either way — Zennopay holds it and re-queries the payout partner
-periodically. While unresolved, the partner sees the intent in `processing`
-state and the SDK surfaces "pending" to the end user. If still ambiguous after
-24 hours, it escalates to manual review.
+## Reconciliation rules
 
-## Period close
+1. Persist your business operation and idempotency key before calling the API.
+2. Store each webhook before returning `2xx`, then deduplicate it by event ID.
+3. Expect duplicate and out-of-order webhook delivery.
+4. After a timeout or ambiguous response, retrieve the existing resource or
+   retry the same create request with the same idempotency key.
+5. Treat the resource returned by its `GET` endpoint as current truth.
+6. Escalate resources that remain non-terminal beyond your operating window;
+   never invent a terminal state locally.
 
-| Cadence | What happens |
-|---|---|
-| **Daily** | Reconciliation pass; downstream payout floats topped up |
-| **Monthly** | Partner statements + invoices generated; bank statements reconciled |
-| **Quarterly** | Commitment-tier recalculation |
-| **Annually** | Audit prep; full event log made available for replay |
+## Keep products separate
 
-## Reports the partner receives
+Do not join a QR payment and a Platform Payout merely because they use the
+same partner reference. Their identifiers, statuses, destinations, balance
+movements, and webhook event types are independent. Store the product type
+alongside every external ID in your ledger or operations table.
 
-- **Daily transaction summary** — per-corridor transaction count and gross TPV.
-- **Monthly statement** — a period summary including processing margin.
-- **Monthly invoice** — commitment fees due, if any.
-- **Reconciliation report (per corridor)** — downstream settlement record vs
-  Zennopay's records, with any flagged discrepancies.
+## Environment isolation
 
-## Audit trail
-
-Every state transition on every payment intent is recorded as an immutable,
-timestamped event, queryable by `payment_intent_id` and retained for **7
-years** per US payment-facilitator industry norm. Auditors can replay any
-historical transaction from the event log; no data is ever overwritten in
-place.
-
-## Currency precision
-
-All USD values are stored and returned as integer cents (`amount_usd_cents`)
-to avoid floating-point drift — see [API conventions](/api-reference/overview).
+Sandbox and live resources are separate. Include the environment in local
+uniqueness constraints and reconciliation jobs so a sandbox ID, event, or
+reference cannot affect live accounting. See
+[Environments](/api-reference/environments).

@@ -13,6 +13,16 @@ generate, sign, publish, or register a key pair.
 | **HMAC** | Partner backend ↔ Zennopay REST API | HMAC-SHA256 | Your server (rotated quarterly) |
 | **Session token** | Partner app → SDK → Zennopay checkout | Zennopay-minted, opaque to you | Your app, in memory, short-lived |
 
+## Product use
+
+| Product | Server-to-server calls | Client credential |
+|---|---|---|
+| QR Payments | HMAC for intent creation and partner reads | Session token for PaymentSheet; receipt token for receipt reads |
+| Platform Payouts | HMAC for beneficiaries and payouts | None; the product has no client-side API |
+
+The HMAC contract below is shared. Session tokens, receipt tokens, and app
+package allowlisting apply only to QR Payments.
+
 <Note>
   **No key pair required.** There is no RS256 keypair to generate, no
   `iss`/`kid` to register, no JWKS endpoint to publish, and no session JWT for
@@ -22,14 +32,10 @@ generate, sign, publish, or register a key pair.
 ## Server-to-server HMAC
 
 Every request to the Zennopay REST API (`https://api.zennopay.com/v1/*` in
-production, `https://api.sandbox.zennopay.com/v1/*` in sandbox — see
+live mode, `https://api.sandbox.zennopay.com/v1/*` in sandbox — see
 [Environments](/api-reference/environments)) from your backend MUST be signed
 with HMAC-SHA256 and accompanied by four headers, and must originate from an
 allowlisted source IP.
-
-The legacy `api.zennopay.in` / `api.sandbox.zennopay.in` hosts remain served for
-existing integrations, with identical signing rules — the host is not part of
-the signing string, so no signature changes either way.
 
 ### Required headers
 
@@ -95,9 +101,9 @@ On each incoming request, Zennopay verifies in this order. Any failure returns
 1. **IP allowlist:** source IP must match your registered list.
 2. **Key ID:** `X-Zennopay-Key-Id` must exist, be active, and not revoked.
 3. **Timestamp skew:** within ±5 minutes of server time.
-4. **Nonce uniqueness:** not seen in the last 10 minutes.
-5. **Signature:** reconstruct the canonical request, recompute HMAC, compare
+4. **Signature:** reconstruct the canonical request, recompute HMAC, compare
    in constant time.
+5. **Nonce uniqueness:** not seen in the replay window.
 
 If all five pass, the request is authenticated and the partner ID is attached
 to the request context for authorization checks.
@@ -228,7 +234,7 @@ reasons. Use the `request_id` to correlate with internal logs when escalating.
 }
 ```
 
-## Client session token
+## QR Payments client session token
 
 Your app never holds your HMAC secret. Per payment, it holds a **session token**
 — a short-lived credential scoped to a single intent — which it passes to the
@@ -252,7 +258,7 @@ Create the intent with a normal HMAC-signed call. The
 
 ```json
 {
-  "intent_id": "zp_AbCd1234EfGh5678",
+  "intent_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
   "status": "created",
   "amount_usd_cents": 345,
   "corridor": "th_promptpay",
@@ -318,7 +324,7 @@ sign:
   to; the raw ID number itself never crosses.
 </Note>
 
-## App package allowlist
+## QR Payments app package allowlist
 
 The session token authenticates the **user + intent**. The **app package
 allowlist** authenticates the **app** that presents it: only your registered
@@ -354,45 +360,14 @@ The SDK sets this header for you — you don't construct it. Your only step is t
   builds will 401 in sandbox.
 </Warning>
 
-## End-to-end flow
+## Product integration guides
 
-```text
-User taps "Pay" in partner app
-    |
-    v
-Partner backend creates intent (HMAC-signed):
-    POST https://api.zennopay.com/v1/payment_intents
-    body: { partner_user_id, amount_usd_cents, corridor,
-            kyc_attestation, sanctions_attestation }
-    header: Idempotency-Key
-    -> { "intent_id": "zp_AbCd1234", "session_token": "zpst_…",
-         "session_expires_at": 1716305700, ... }
-    |
-    v
-Partner backend returns to app: { intent_id, session_token }
-    |
-    v
-Partner app calls SDK:
-    Zennopay.presentCheckout(intentID, sessionToken)
-    |
-    v
-SDK talks to Zennopay directly with session_token as Authorization: Bearer
-(and the app's X-Zennopay-Package header, checked against your allowlist):
-    1. User scans QR   -> POST /v1/payment_intents/:id/scan
-    2. Amount + FX quote
-    3. Slide to pay     -> POST /v1/payment_intents/:id/confirm (Idempotency-Key)
-    (On 401 mid-flow, the SDK's refreshSession hook asks your backend to
-     re-mint via POST /v1/payment_intents/:id/session.)
-    |
-    v
-Zennopay executes payment: debit float, call payout partner, settle
-    |
-    v
-SDK returns one typed PaymentResult to your app
-    |
-    v
-Zennopay POSTs a signed webhook with the terminal status
-```
+Authentication defines credentials and signing only. Follow the product guide
+for request order, resource states, and retry behavior:
+
+- [QR Payments quickstart](/quickstart)
+- [Build the PaymentSheet session endpoint](/payments/session-endpoint)
+- [Platform Payouts quickstart](/platform-payouts/quickstart)
 
 ## What's out of scope for v1
 

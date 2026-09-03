@@ -56,18 +56,8 @@ ZennopayConfig.production   // https://api.zennopay.com — real money
 ZennopayConfig.custom('http://localhost:3000')
 ```
 
-<Note>
-  **Already shipped on `zennopay.in`?** Nothing to do. Previously published SDK
-  versions resolve `sandbox` / `production` to the `api.zennopay.in` hosts, and
-  **those hosts continue to be served** — same API, same credentials. You do not
-  need to ship an app update to stay working. See
-  [Environments](/api-reference/environments#legacy-domain-hosts).
-</Note>
-
-Your API keys never live in the app: per payment, your backend
-[creates the intent](/payments/session-endpoint) and Zennopay returns a session
-token. Your backend passes it to your app, and the SDK holds only that
-short-lived token.
+See [Environments](/api-reference/environments) for canonical and supported
+alternate hosts.
 
 ## Present the PaymentSheet
 
@@ -199,13 +189,10 @@ await Zennopay.presentSheet(
 - **Simulator/emulator:** no usable camera — use the sheet's paste-QR fallback
   with any VietQR payload string; the backend does the authoritative parse.
 - **Sandbox end-to-end:** `ZennopayConfig.sandbox` + a session from your
-  sandbox backend drives the flow to a real `captured` on the sandbox payout
+  sandbox backend drives the flow to a real `captured` on the sandbox delivery
   rail.
 - **Fail-fast checks:** a blank or mismatched session token resolves immediately
   with `Failed` (`invalidJwt` / `intentMismatch`) before any UI is shown.
-
-The full sandbox checklist — including limit-blocked payments and pending
-reconciliation — is in [Test your integration](/payments/testing).
 
 ## Next steps
 
@@ -219,7 +206,7 @@ reconciliation — is in [Test your integration](/payments/testing).
   <Card title="Webhooks" icon="webhook" href="/api-reference/webhooks">
     Reconcile terminal states server-side.
   </Card>
-  <Card title="Per-user limits" icon="gauge-high" href="/fundamentals/limits">
+  <Card title="QR Payments limits" icon="gauge-high" href="/fundamentals/limits">
     The corridor limits Zennopay enforces for you.
   </Card>
 </CardGroup>

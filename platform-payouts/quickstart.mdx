@@ -1,0 +1,72 @@
+---
+title: "Platform Payouts quickstart"
+description: "Create and track your first sandbox payout."
+---
+
+Use the sandbox base URL and an HMAC credential issued for sandbox. See
+[Authentication](/authentication) for the canonical signing string and
+[Environments](/api-reference/environments) for current hosts.
+
+<Steps>
+  <Step title="Create a beneficiary">
+    Sign and send:
+
+    ```http
+    POST /v1/beneficiaries
+    Content-Type: application/json
+    ```
+
+    ```json
+    {
+      "type": "bank_account",
+      "name": "Example Recipient",
+      "destination_country": "VN",
+      "currency": "VND",
+      "account_number": "1234567890",
+      "bank_code": "VCB"
+    }
+    ```
+
+    Save the returned `ben_...` identifier. The response contains only
+    `account_last4`, never the full account number.
+  </Step>
+  <Step title="Create an idempotent payout">
+    Generate one stable key for this business operation:
+
+    ```http
+    POST /v1/payouts
+    Idempotency-Key: order-456-payout-v1
+    Content-Type: application/json
+    ```
+
+    ```json
+    {
+      "amount": "125000",
+      "currency": "VND",
+      "beneficiary_id": "ben_...",
+      "reference": "order_456",
+      "metadata": { "order_id": "order_456" }
+    }
+    ```
+
+    A new payout returns `202 Accepted` and
+    `Idempotent-Replayed: false`. Keep the returned `pout_...` ID.
+  </Step>
+  <Step title="Retrieve the result">
+    Sign `GET /v1/payouts/{payout_id}`. Continue until the status is
+    `completed`, `failed`, or `reversed`, or handle the equivalent
+    [webhook](/platform-payouts/webhooks).
+  </Step>
+  <Step title="Verify retries">
+    Repeat the identical create request and key. The API returns the original
+    payout with `200 OK` and `Idempotent-Replayed: true`. Changing the request
+    under that key returns `duplicate_payout`.
+  </Step>
+</Steps>
+
+<Warning>
+  Money fields are strings. For VND, `"125000"` means 125,000 dong. Do not send
+  `125000`, `"125000.00"`, or floating-point values.
+</Warning>
+
+Next, run every scenario in [Sandbox testing](/platform-payouts/testing).

@@ -1,0 +1,54 @@
+---
+title: "Test Platform Payouts"
+description: "Exercise deterministic payout outcomes in sandbox."
+---
+
+Sandbox credentials, balances, beneficiaries, routes, and webhook deliveries
+are isolated from live mode. The sandbox never falls back to a live rail.
+
+When the sandbox payout rail is enabled for your account, add one of these
+string values to payout `metadata`:
+
+| Metadata | Behavior |
+|---|---|
+| `"sandbox_scenario": "success"` | Completes on execution. |
+| `"sandbox_scenario": "failed"` | Reaches a terminal failure. |
+| `"sandbox_scenario": "processing"` | Enters processing, then completes during polling. |
+| `"sandbox_scenario": "unknown"` | Simulates an ambiguous submit, then resolves during polling. |
+| `"compliance_scenario": "review"` | Remains in `created` pending review. |
+| `"compliance_scenario": "reject"` | Is rejected by sandbox compliance. |
+
+```json
+{
+  "amount": "125000",
+  "currency": "VND",
+  "beneficiary_id": "ben_...",
+  "reference": "sandbox_unknown_001",
+  "metadata": { "sandbox_scenario": "unknown" }
+}
+```
+
+## Required test matrix
+
+1. Create a beneficiary and verify that only the destination's last four
+   characters are returned.
+2. Run all four payout outcomes and poll each to its expected state.
+3. Run both compliance outcomes.
+4. Replay identical input with the same idempotency key; expect the original
+   payout and `Idempotent-Replayed: true`.
+5. Change input under the same key; expect `duplicate_payout`.
+6. Test insufficient balance and an unavailable destination.
+7. Verify webhook signature, duplicate delivery handling, and out-of-order
+   handling.
+8. Simulate an HTTP timeout after create; read/retry with the original key
+   rather than creating a second operation.
+
+<Note>
+  Sandbox execution must be enabled in the deployed environment. If beneficiary
+  creation or the success scenario fails with `configuration_error` or
+  `rail_unavailable`, contact support; do not interpret that as a successful
+  sandbox setup.
+</Note>
+
+Test-only scenario metadata must not be sent in live mode. A successful
+sandbox test does not enable the corresponding live destination.
