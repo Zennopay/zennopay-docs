@@ -12,7 +12,7 @@ prefunded balance.
 | Section | Purpose |
 |---|---|
 | `introduction.mdx` | Product overview and routes into each integration |
-| `qr-payments/` | Canonical QR Payments contract, availability, lifecycle, and errors |
+| `qr-payments/` | QR Payments product overview and integration guides |
 | `quickstart.mdx` | QR Payments sandbox tutorial |
 | `payments/` | Accept payments: PaymentSheet overview, session endpoint, iOS, Android, Flutter, React Native, testing |
 | `authentication.mdx` | HMAC-only partner auth + the Zennopay-minted session token, with test vectors |
