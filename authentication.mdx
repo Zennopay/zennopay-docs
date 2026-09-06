@@ -69,7 +69,7 @@ body hash:
 {REQUEST_PATH}\n
 {X-Zennopay-Timestamp}\n
 {X-Zennopay-Nonce}\n
-{SHA256_HEX of request body, or empty string for GET/DELETE}\n
+{SHA256_HEX of non-empty request body, or empty string when no body}\n
 ```
 
 For `POST /v1/payment_intents` at `2026-05-21T14:30:00Z` with nonce
@@ -83,8 +83,14 @@ a1b2c3d4e5f6...
 8b7e6a5d4c3b2a1f0e9d8c7b6a5d4c3b2a1f0e9d8c7b6a5d4c3b2a1f0e9d8c7b
 ```
 
-The last line is the lowercased SHA256 hex of the exact bytes of the request
-body. Sign this string with HMAC-SHA256 using your signing secret, then
+For partner API calls, `REQUEST_PATH` is the URL pathname, such as
+`/v1/payouts`; exclude the host and query string. Use an uppercase HTTP method.
+For outbound webhook verification, use the endpoint pathname **including its
+query string**, if configured. See [Webhooks](/api-reference/webhooks).
+
+The last line is the lowercased SHA256 hex of the exact bytes of a non-empty
+request body. If there is no body, use an empty string for this line, including
+for a bodyless POST. Sign this string with HMAC-SHA256 using your signing secret, then
 base64-encode the output and pass it as `X-Zennopay-Signature`.
 
 <Warning>
@@ -326,10 +332,10 @@ sign:
 
 ## QR Payments app package allowlist
 
-The session token authenticates the **user + intent**. The **app package
-allowlist** authenticates the **app** that presents it: only your registered
-mobile app can drive the SDK calls (`scan` / `confirm`), so a leaked session
-token can't be replayed from a different app.
+The session token authorizes requests for a user and intent. The app package
+allowlist checks the `X-Zennopay-Package` identifier sent by the SDK against
+your registered app identifiers. This header check is not device or app
+attestation; continue to protect session tokens as bearer credentials.
 
 Every SDK call on the session-token path sends the app's platform identifier in
 the `X-Zennopay-Package` header:

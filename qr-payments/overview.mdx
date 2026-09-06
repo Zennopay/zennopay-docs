@@ -1,40 +1,16 @@
 ---
 title: "QR Payments"
 description: "Let users scan a supported merchant QR and pay without leaving your app."
+sidebarTitle: "Overview"
 ---
 
+<div className="zp-product-banner">
+  <img src="/images/products/qr-payments-glass.webp" srcSet="/images/products/qr-payments-glass-480.webp 480w, /images/products/qr-payments-glass.webp 960w" sizes="(max-width: 767px) 320px, 480px" alt="" width="960" height="640" decoding="async" />
+</div>
+
 QR Payments embeds Zennopay's native PaymentSheet in your mobile app. A user
-scans a merchant-presented QR, reviews the bound local-currency quote, confirms
+scans a merchant-presented QR, reviews the merchant, local amount, and USD wallet debit, confirms
 once, and receives the result in the same app.
-
-<Note>
-  QR Payments is a consumer checkout flow built around a `payment_intent` and
-  the mobile SDK. To send a server-initiated bank transfer to a beneficiary,
-  use [Platform Payouts](/platform-payouts/overview).
-</Note>
-
-## Build the integration
-
-<CardGroup cols={2}>
-  <Card title="QR Payments quickstart" icon="bolt" href="/quickstart">
-    Create a sandbox payment intent and hand its session to PaymentSheet.
-  </Card>
-  <Card title="PaymentSheet" icon="mobile" href="/payments/overview">
-    Choose iOS, Android, Flutter, or React Native.
-  </Card>
-  <Card title="Payment Intent API" icon="code" href="/api-reference/payment-intents/create">
-    Use the endpoint reference for request and response fields.
-  </Card>
-  <Card title="QR corridors" icon="globe" href="/concepts/corridors">
-    Check scheme, currency, and execution availability.
-  </Card>
-  <Card title="QR Payments webhooks" icon="webhook" href="/api-reference/webhooks">
-    Reconcile terminal payment-intent states server-side.
-  </Card>
-  <Card title="Sandbox testing" icon="flask" href="/payments/testing">
-    Exercise scan, confirm, limits, and pending outcomes.
-  </Card>
-</CardGroup>
 
 ## How it works
 
@@ -77,3 +53,26 @@ QR scheme support and merchant-delivery execution are separate capabilities. A c
 recognized by the API is not necessarily enabled for execution in every
 environment or account. See [QR Payments corridors](/concepts/corridors) for
 the current source of truth.
+
+## Related guides
+
+<CardGroup cols={2}>
+  <Card title="QR Payments quickstart" icon="bolt" href="/quickstart">
+    Create a sandbox payment intent and hand its session to PaymentSheet.
+  </Card>
+  <Card title="PaymentSheet" icon="mobile" href="/payments/overview">
+    Choose iOS, Android, Flutter, or React Native.
+  </Card>
+  <Card title="Payment Intent API" icon="code" href="/api-reference/payment-intents/create">
+    Use the endpoint reference for request and response fields.
+  </Card>
+  <Card title="QR corridors" icon="globe" href="/concepts/corridors">
+    Check scheme, currency, and execution availability.
+  </Card>
+  <Card title="QR Payments webhooks" icon="webhook" href="/api-reference/webhooks">
+    Reconcile terminal payment-intent states server-side.
+  </Card>
+  <Card title="Sandbox testing" icon="flask" href="/payments/testing">
+    Exercise scan, confirm, limits, and pending outcomes.
+  </Card>
+</CardGroup>

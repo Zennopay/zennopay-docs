@@ -1,11 +1,23 @@
 ---
 title: "Platform Payouts quickstart"
 description: "Create and track your first sandbox payout."
+sidebarTitle: "Send a bank payout"
 ---
 
 Use the sandbox base URL and an HMAC credential issued for sandbox. See
 [Authentication](/authentication) for the canonical signing string and
 [Environments](/api-reference/environments) for current hosts.
+
+## Before you start
+
+Have Zennopay enable the sandbox payout destination and provision test funds
+in its currency. This example uses a Vietnam bank destination and VND.
+If using the funding flow, [deposit USD and request a
+conversion](/platform-payouts/funding), then wait for available VND before
+creating a payout. A USD deposit alone cannot fund this VND payout.
+
+Sign each request with a fresh timestamp and nonce. Keep the payout's
+idempotency key unchanged across retries.
 
 <Steps>
   <Step title="Create a beneficiary">

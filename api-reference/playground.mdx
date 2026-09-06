@@ -1,84 +1,48 @@
 ---
-title: "API playground"
-description: "Try QR Payments and Platform Payouts endpoints against the sandbox server."
+title: "Try the API"
+description: "Send authenticated sandbox requests and use the OpenAPI reference."
 ---
 
-Use the interactive playground below to exercise the Zennopay API
-against the sandbox environment. Every endpoint defined in
-[`openapi.json`](https://github.com/Zennopay/zennopay-docs/blob/main/openapi.json)
-is callable here — request bodies are validated client-side against the
-schema before they're sent.
+Start with the [QR Payments quickstart](/quickstart) or
+[Platform Payouts quickstart](/platform-payouts/quickstart) to run a complete
+sandbox flow. Use the endpoint pages in **API Reference** to inspect request
+fields and responses.
 
-<Note>
-  The playground talks to `https://api.sandbox.zennopay.com`. Use a
-  **sandbox** HMAC key (`{partner}_sandbox_*`) — production keys are
-  rejected by the sandbox host. The alternate `api.sandbox.zennopay.in` host is
-  still served if your client is pinned to it.
-</Note>
+## Send a sandbox request
 
-## What you'll need
+1. Use `https://api.sandbox.zennopay.com` and your sandbox credentials.
+2. Build the exact JSON body you will send. Generate a fresh timestamp and
+   nonce, then compute the [HMAC signature](/authentication#canonical-request)
+   on your backend or in a trusted local script.
+3. Send the body with the four HMAC headers. Keep your idempotency key stable
+   when retrying the same operation.
+4. Save the resource ID and retrieve its status to verify the result.
 
-- A sandbox HMAC key (`X-Zennopay-Key-Id`) and shared secret. Compute the
-  signature with the canonical-request recipe from
-  [Authentication](/authentication).
-- For session-token endpoints (`GET /v1/payment_intents/{intent_id}` and
-  `POST /v1/payment_intents/{intent_id}/confirm`), the `session_token` returned
-  by a `POST /v1/payment_intents` call — send it as `Authorization: Bearer`.
-  These are the calls the SDK normally makes; you rarely call them by hand.
-- For Platform Payouts, an environment-scoped prefund balance and enabled
-  payout route. Payout calls are server-to-server and remain HMAC-signed.
+Keep your HMAC signing secret on your backend. An OpenAPI client does not
+compute Zennopay signatures automatically: provide the signed headers for
+each request, and avoid changing the body after signing.
 
-## Endpoints
+For SDK requests, use the returned `session_token` as `Authorization: Bearer`
+and send your registered `X-Zennopay-Package`. The native SDK supplies these
+headers when you use PaymentSheet.
 
-The playground is generated from [`/openapi.json`](/openapi.json) and groups
-endpoints by tag:
-
-- **Payment Intents** — `POST /v1/payment_intents`,
-  `POST /v1/payment_intents/{intent_id}/session`,
-  `POST /v1/payment_intents/{intent_id}/receipt_token`,
-  `POST /v1/payment_intents/{intent_id}/scan`,
-  `GET /v1/payment_intents/{intent_id}`,
-  `POST /v1/payment_intents/{intent_id}/confirm`,
-  `POST /v1/payment_intents/{intent_id}/cancel`
-- **Beneficiaries** — `POST /v1/beneficiaries`
-- **Platform Payouts** — `POST /v1/payouts`, `GET /v1/payouts`,
-  `GET /v1/payouts/{payout_id}`, and
-  `POST /v1/payouts/{payout_id}/cancel`
-
-<Card title="Open the OpenAPI spec" icon="code" href="/openapi.json">
-  Raw OpenAPI 3.1 document. Drop this into Postman, Insomnia, or your own
-  codegen if you'd rather build a client locally.
+<Card title="Download the OpenAPI spec" icon="code" href="/openapi.json">
+  Import the OpenAPI 3.1 document into Postman, Insomnia, or your client tools
+  to inspect payment-intent, beneficiary, and payout endpoints.
 </Card>
 
-## Tips for first-time use
+Funding requests, conversions, and balance reads are documented in
+[Fund your payout balance](/platform-payouts/funding).
 
-<AccordionGroup>
-  <Accordion title="My HMAC request returns 401">
-    The most common causes, in order:
+## Troubleshoot a request
 
-    1. **Clock skew.** `X-Zennopay-Timestamp` must be within ±5 minutes
-       of server time. NTP-sync your machine.
-    2. **Body hash mismatch.** The canonical request hashes the *exact
-       bytes* of the request body. Don't pretty-print or re-serialize
-       between signing and sending.
-    3. **Source IP not allowlisted.** The sandbox allowlist is configured
-       per partner in the console.
-  </Accordion>
-  <Accordion title="My session-token call returns 401">
-    In the default flow the session token is Zennopay-minted, so the usual
-    causes are:
+| Symptom | Check |
+|---|---|
+| HMAC request returns `401` | Correct environment and key, timestamp within five minutes, fresh nonce, and exact signed body bytes. Check registered egress IPs for live requests. |
+| Session request returns `401` | Matching intent, unexpired token, and registered app identifier. Re-mint for the same intent when needed. |
+| Confirm times out | Retrieve the existing intent. Keep its idempotency key when retrying; do not create a replacement payment. |
+| Payout returns `insufficient_balance` | Available balance in the payout currency, including funds already reserved. |
+| Destination cannot execute | Confirm account and environment enablement with Zennopay, then run the product's sandbox checklist. |
 
-    - **Expired.** `session_expires_at` has passed. Create a fresh intent (or
-      re-mint via `POST /v1/payment_intents/{intent_id}/session`) and use the
-      new `session_token`.
-    - **Wrong intent.** A token issued for intent A can't call intent B — the
-      path `{intent_id}` must match the intent the token was minted for.
-    - **Already consumed.** The confirming call is single-use; re-mint via
-      `POST /v1/payment_intents/{intent_id}/session` if you need another.
-  </Accordion>
-  <Accordion title="My nonce keeps getting rejected">
-    Each `X-Zennopay-Nonce` is single-use within a 10-minute window.
-    Generate a fresh random 32-byte hex string for every request — never
-    hardcode or reuse one.
-  </Accordion>
-</AccordionGroup>
+See [Environments](/api-reference/environments) for live configuration and
+supported alternate hosts.

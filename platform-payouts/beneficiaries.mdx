@@ -50,6 +50,20 @@ The full account number is never returned. Beneficiaries are isolated by the
 authenticated tenant and environment. A test identifier cannot be used in
 live mode, and a cross-tenant identifier is treated as invalid.
 
+## List beneficiaries
+
+```http
+GET /v1/beneficiaries?limit=50
+```
+
+Sign the request with your backend HMAC credential. `limit` is an integer from
+1 to 100 and defaults to 50. The response is `{ "data": [...] }`; each entry
+has the create-response fields plus `status` (`active` or `disabled`). This
+endpoint currently returns a bounded list with no pagination cursor.
+
+Use an active beneficiary for new payouts. Full account numbers are omitted
+from both create and list responses.
+
 ## Stored or inline
 
 `POST /v1/payouts` accepts exactly one of:

@@ -1,50 +1,93 @@
 ---
 title: "QR Payments webhooks"
-description: "Verify signed payment-intent lifecycle events."
+description: "Verify payment-intent events and reconcile payments on your backend."
+sidebarTitle: "QR payment webhooks"
 ---
 
-This page covers QR Payments events. Platform Payouts has a separate event
-contract in [Payout webhooks](/platform-payouts/webhooks).
-
-<Note>
-  Webhook signatures share the HMAC canonicalization scheme used for
-  server-to-server requests. See [Authentication](/authentication).
-</Note>
+Use signed webhook events to update your backend when a payment completes,
+fails, is refunded, or is reversed. Continue processing events even after the
+user closes PaymentSheet.
 
 ## Event types
 
-| Event | When it fires |
+| Event | Meaning |
 |---|---|
-| `payment_intent.captured` | The local rail confirmed merchant delivery |
-| `payment_intent.failed` | Final failure; intent will not be retried |
-| `payment_intent.refunded` | Refund completed end-to-end |
+| `payment_intent.captured` | The local rail confirmed merchant delivery. |
+| `payment_intent.failed` | Payment reached a final failure. |
+| `payment_intent.refunded` | Refund completed. |
+| `payment_intent.capture_reversed` | A captured payment was reversed. |
 
-## Delivery
+## Payload
 
-- Webhooks are `POST`ed as JSON to your registered endpoint.
-- We retry with exponential backoff on non-2xx responses for up to 24 hours.
-- Order is **not** guaranteed. Treat your handler as idempotent — keyed on
-  `event_id`.
-
-## Signature verification
-
-Each webhook carries an `X-Zennopay-Signature` header. Verify it by
-re-computing HMAC-SHA256 over the canonical request (see
-[Authentication](/authentication)) using the webhook signing secret issued
-during onboarding (distinct from your API signing secret).
-
-```typescript
-import crypto from "node:crypto";
-
-function verifyWebhook(headers, rawBody, secret, requestPath) {
-  const timestamp = headers["x-zennopay-timestamp"];
-  const nonce = headers["x-zennopay-nonce"];
-  const signature = headers["x-zennopay-signature"];
-  const bodyHash = crypto.createHash("sha256").update(rawBody).digest("hex");
-  const canonical = ["POST", requestPath, timestamp, nonce, bodyHash].join("\n") + "\n";
-  const expected = crypto.createHmac("sha256", secret).update(canonical).digest("base64");
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+```json
+{
+  "webhook_event_id": "0198f31a-7c2b-7d91-9fa2-112233445566",
+  "webhook_event_type": "payment_intent.captured",
+  "api_version": "2026-05",
+  "created_at": "2026-09-05T12:00:05.000Z",
+  "data": {
+    "intent": {
+      "id": "0198f31a-7c2b-7d91-9fa2-112233445567",
+      "partner_id": "example_partner",
+      "partner_user_id": "usr_8f3ka92m",
+      "amount_usd_cents": 14000,
+      "corridor": "vn_vietqr",
+      "status": "captured",
+      "provider_quote_id": null,
+      "provider_local_amount_minor_units": "3500000",
+      "provider_local_currency": "VND",
+      "created_at": "2026-09-05T12:00:00.000Z",
+      "updated_at": "2026-09-05T12:00:05.000Z"
+    }
+  }
 }
 ```
 
-Always use a constant-time comparison.
+Events carry an intent snapshot in `data.intent`. Failure events also include
+`data.reason`; refund and reversal events include `data.refund` or
+`data.reversal`. Local amounts are int64 strings. Store `webhook_event_id`
+as the deduplication key and `data.intent.id` as the payment identifier.
+
+## Verify the request
+
+Webhook requests include these headers:
+
+```http
+X-Zennopay-Key-Id: <outbound key id>
+X-Zennopay-Timestamp: <RFC3339 timestamp>
+X-Zennopay-Nonce: <64 hex characters>
+X-Zennopay-Signature: <base64 HMAC-SHA256>
+X-Zennopay-Webhook-Event-Id: <event id>
+X-Zennopay-Webhook-Event-Type: payment_intent.captured
+```
+
+1. Select the outbound webhook secret for the key ID and environment. This
+   is separate from your API signing secret.
+2. Read the exact raw request body bytes. Check the timestamp against your
+   allowed clock window and validate the nonce and signature formats.
+3. Build the [HMAC canonical string](/authentication#canonical-request) with
+   `POST`, your endpoint's pathname **including its query string**, timestamp,
+   nonce, and SHA-256 body hash. Include the trailing newline.
+4. Compare the received and computed signatures in constant time. Reject
+   malformed signatures, including a different decoded length.
+5. Check and record the nonce atomically to reject request replays. Verify the
+   signature before storing the event or changing payment state.
+
+Do not parse and re-serialize JSON before verification. Whitespace changes
+produce a different body hash.
+
+## Acknowledge and reconcile
+
+- Return `2xx` after durably storing the verified event. An already-stored
+  event may be acknowledged again without repeating its accounting effects.
+- Deduplicate by `webhook_event_id`. Delivery is at least once, and ordering
+  is not guaranteed.
+- Network and `5xx` failures are retried with backoff up to the configured
+  attempt limit. Exhausted deliveries are retained for operator replay.
+- A `4xx` response is treated as a permanent failure and is not automatically
+  retried. Return `5xx` when a temporary storage failure prevents acceptance.
+- Retrieve `GET /v1/payment_intents/{id}` when events arrive out of order or
+  local state is uncertain. See [Reconciliation](/concepts/settlement).
+
+[Platform Payouts webhooks](/platform-payouts/webhooks) documents the payout
+payload and event types.

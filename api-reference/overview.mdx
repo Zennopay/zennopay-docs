@@ -1,10 +1,11 @@
 ---
 title: "API reference"
 description: "Shared conventions and routes into the QR Payments and Platform Payouts contracts."
+sidebarTitle: "Overview"
 ---
 
-Zennopay exposes QR Payments and Platform Payouts under the same `/v1` API and
-HMAC trust model.
+Find endpoints for payment intents, beneficiaries, payouts, and payout
+funding. All partner API routes use the `/v1` prefix.
 
 <CodeGroup>
 ```bash Live
@@ -23,7 +24,8 @@ isolation rules.
 
 - HTTPS and UTF-8 JSON only.
 - Server-to-server calls use [HMAC authentication](/authentication).
-- Errors use `error.code`, `error.message`, and `error.request_id`.
+- Errors use `error.code` and `error.message`. Retain `error.request_id`
+  when present; funding errors currently omit it.
 - Store resource IDs and idempotency keys as opaque strings.
 - Treat asynchronous resource reads as authoritative after network ambiguity.
 
@@ -69,11 +71,16 @@ minor-unit field.
   <Card title="Payouts API" icon="money-bill-transfer" href="/platform-payouts/payouts">
     Create, retrieve, list, and interpret payouts.
   </Card>
+  <Card title="Funding" icon="wallet" href="/platform-payouts/funding">
+    Deposit USD, reserve a conversion, and check available payout balances.
+  </Card>
   <Card title="Payout webhooks" icon="webhook" href="/platform-payouts/webhooks">
     Verify payout lifecycle events.
   </Card>
 </CardGroup>
 
-The downloadable [OpenAPI 3.1 document](/openapi.json) covers the public REST
-routes for both products. Product pages remain the canonical guides for
-lifecycle, retry, webhook, and sandbox behavior.
+The downloadable [OpenAPI 3.1 document](/openapi.json) covers payment intents,
+beneficiaries, and payouts. Funding endpoints and their current response
+fields are documented in [Fund your payout balance](/platform-payouts/funding).
+Product pages remain the canonical guides for lifecycle, retry, webhook, and
+sandbox behavior.

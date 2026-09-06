@@ -1,10 +1,10 @@
 ---
 title: "Zennopay PaymentSheet"
 description: "A native, in-process pay experience — scan → amount → slide-to-pay → result — your users never leave your app."
+sidebarTitle: "PaymentSheet"
 ---
 
-The **PaymentSheet** is Zennopay's prebuilt, native payment UI, modeled on
-Stripe's PaymentSheet. Your backend creates a payment intent and Zennopay
+The **PaymentSheet** is Zennopay's prebuilt, native QR payment UI. Your backend creates a payment intent and Zennopay
 returns a short-lived session token; your app hands the intent ID and token to
 the SDK in a single call; the SDK renders the entire pay experience — QR scan,
 amount + FX quote, slide-to-pay, and result — **natively, in-process**, and
@@ -45,25 +45,37 @@ merchant in the sandbox.
     </Frame>
   </Step>
   <Step title="Your app: back in control">
-    <Frame caption="The sheet dismisses and your onResult callback fires — debit your ledger, render the activity row.">
+    <Frame caption="The sheet dismisses and your onResult callback fires. Refresh the wallet and activity from your backend.">
       <img src="/images/sdk-demo/05-home-after.png" width="280" alt="Partner wallet home after payment: balance debited and a new activity row." />
     </Frame>
   </Step>
 </Steps>
+
+## Handle results in your app
+
+Use `PaymentResult` to update the screen, then refresh wallet and transaction
+state from your backend. Post accounting changes from verified server-side
+state. A client callback can be missed when the app closes and must not trigger
+a second wallet debit.
+
+`pending` means delivery is unresolved when the sheet closes. Keep tracking
+the existing intent through [webhooks](/api-reference/webhooks) or a
+[status read](/api-reference/payment-intents/get).
 
 ## Pick your platform
 
 | Platform | Package | Install | Minimums |
 |---|---|---|---|
 | [iOS](/payments/ios) | `Zennopay` (SwiftPM / CocoaPods) | SPM `zennopay-ios-sdk` · `pod 'Zennopay'` | iOS 16, Swift 5.9 |
-| [Android](/payments/android) | `in.zennopay:sdk` (Maven Central) | `implementation("in.zennopay:sdk:0.6.0")` | minSdk 24, Compose |
-| [Flutter](/payments/flutter) | `zennopay_flutter` (pub.dev) | `zennopay_flutter: ^0.6.0` | Flutter 3.19, Dart 3.4 |
+| [Android](/payments/android) | `in.zennopay:sdk` (Maven Central) | `implementation("in.zennopay:sdk:0.7.0")` | minSdk 24, Compose |
+| [Flutter](/payments/flutter) | `zennopay_flutter` (pub.dev) | `zennopay_flutter: ^0.7.0` | Flutter 3.19, Dart 3.4 |
 | [React Native](/payments/react-native) | `@zennopay/react-native` (npm) | `npm install @zennopay/react-native` | RN 0.70 (bridges the native SDKs) |
 
 Every platform has the same shape: one `present` call in, one `PaymentResult`
 out — `completed` / `canceled` / `failed` / `pending` (delivered when the user
 leaves while merchant delivery is still processing, or when polling times out; the
-payment resolves asynchronously and unspent funds are released automatically).
+payment resolves asynchronously). Keep it pending until your backend verifies
+the final payment state.
 
 ## How it works
 
@@ -102,9 +114,9 @@ sequenceDiagram
     ZP-->>BE: webhook: payment_intent.captured
 ```
 
-Creating the intent and returning the session token is the only backend work.
-It is documented end to end, with a complete Node.js reference
-implementation, in [Build your session endpoint](/payments/session-endpoint).
+Your backend creates checkout sessions, refreshes expired tokens, and
+reconciles wallet and payment state from signed webhooks or API reads. Start
+with the Node.js integration example in [Build your session endpoint](/payments/session-endpoint).
 
 <Info>
   **Trust model.** Your HMAC key ID and signing secret stay on your backend.

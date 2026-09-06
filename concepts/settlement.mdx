@@ -29,13 +29,6 @@ page defines the shared recovery behavior.
 6. Escalate resources that remain non-terminal beyond your operating window;
    never invent a terminal state locally.
 
-## Keep products separate
-
-Do not join a QR payment and a Platform Payout merely because they use the
-same partner reference. Their identifiers, statuses, destinations, balance
-movements, and webhook event types are independent. Store the product type
-alongside every external ID in your ledger or operations table.
-
 ## Environment isolation
 
 Sandbox and live resources are separate. Include the environment in local

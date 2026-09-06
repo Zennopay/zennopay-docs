@@ -53,7 +53,7 @@ X-Zennopay-Webhook-Event-Type: payout.completed
 ```
 
 Build the canonical string exactly as described in
-[Authentication](/authentication), using the actual request path and query and
+[Authentication](/authentication), using the webhook endpoint path including its query string and
 the SHA-256 hash of the exact raw body bytes. Verify with the outbound webhook
 secret issued for the endpoint—not the API signing secret. Use a constant-time
 comparison, enforce a timestamp window, and reject repeated nonces.

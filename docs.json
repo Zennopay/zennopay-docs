@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "palm",
+  "theme": "maple",
   "name": "Zennopay",
   "colors": {
     "primary": "#444CE7",
@@ -12,103 +12,91 @@
     "indexing": "navigable",
     "metatags": {
       "og:site_name": "Zennopay Docs",
-      "og:title": "Zennopay Docs — QR Payments and Platform Payouts",
+      "og:title": "Zennopay Docs \u2014 QR Payments and Platform Payouts",
       "og:description": "Integrate cross-border QR Payments with a native PaymentSheet or send asynchronous bank payouts with the Platform Payouts API.",
       "og:image": "https://docs.zennopay.com/images/og-image.png",
       "og:type": "website",
       "twitter:card": "summary_large_image",
-      "twitter:title": "Zennopay Docs — QR Payments and Platform Payouts",
+      "twitter:title": "Zennopay Docs \u2014 QR Payments and Platform Payouts",
       "twitter:description": "Developer documentation for Zennopay QR Payments and Platform Payouts.",
       "twitter:image": "https://docs.zennopay.com/images/og-image.png"
     }
   },
   "navigation": {
-    "tabs": [
+    "groups": [
       {
-        "tab": "Documentation",
-        "icon": "book-open",
-        "groups": [
-          {
-            "group": "Get started",
-            "pages": [
-              "introduction",
-              "how-zennopay-works"
-            ]
-          },
-          {
-            "group": "QR Payments",
-            "pages": [
-              "qr-payments/overview",
-              "quickstart",
-              "concepts/funds-flow",
-              "payments/overview",
-              "payments/session-endpoint",
-              "payments/ios",
-              "payments/android",
-              "payments/flutter",
-              "payments/react-native",
-              "payments/testing",
-              "payments/reopen-receipt"
-            ]
-          },
-          {
-            "group": "Platform Payouts",
-            "pages": [
-              "platform-payouts/overview",
-              "platform-payouts/quickstart",
-              "platform-payouts/testing"
-            ]
-          },
-          {
-            "group": "Shared foundations",
-            "pages": [
-              "authentication",
-              "concepts/settlement"
-            ]
-          },
-          {
-            "group": "Resources",
-            "pages": [
-              "changelog"
-            ]
-          }
+        "group": "Get started",
+        "pages": [
+          "introduction",
+          "api-reference/environments",
+          "authentication"
         ]
       },
       {
-        "tab": "API Reference",
-        "icon": "code",
-        "groups": [
+        "group": "Guides",
+        "pages": [
+          "quickstart",
+          "platform-payouts/quickstart",
+          "platform-payouts/funding",
+          "payments/reopen-receipt",
+          "concepts/settlement"
+        ]
+      },
+      {
+        "group": "QR Payments",
+        "pages": [
+          "qr-payments/overview",
+          "payments/overview",
+          "payments/session-endpoint",
           {
-            "group": "API Reference",
+            "group": "Mobile SDKs",
             "pages": [
-              "api-reference/overview",
-              "api-reference/environments",
-              "api-reference/playground",
-              {
-                "group": "QR Payments",
-                "pages": [
-                  "concepts/corridors",
-                  "fundamentals/limits",
-                  "api-reference/payment-intents/create",
-                  "api-reference/payment-intents/session",
-                  "api-reference/payment-intents/scan",
-                  "api-reference/payment-intents/confirm",
-                  "api-reference/payment-intents/get",
-                  "api-reference/payment-intents/receipt-token",
-                  "api-reference/payment-intents/receipt",
-                  "api-reference/webhooks"
-                ]
-              },
-              {
-                "group": "Platform Payouts",
-                "pages": [
-                  "platform-payouts/beneficiaries",
-                  "platform-payouts/payouts",
-                  "platform-payouts/webhooks"
-                ]
-              }
+              "payments/ios",
+              "payments/android",
+              "payments/flutter",
+              "payments/react-native"
             ]
-          }
+          },
+          "concepts/corridors",
+          "fundamentals/limits",
+          "concepts/funds-flow",
+          "payments/testing"
+        ]
+      },
+      {
+        "group": "Platform Payouts",
+        "pages": [
+          "platform-payouts/overview",
+          "platform-payouts/beneficiaries",
+          "platform-payouts/payouts",
+          "platform-payouts/testing",
+          "platform-payouts/webhooks"
+        ]
+      },
+      {
+        "group": "API reference",
+        "pages": [
+          "api-reference/overview",
+          "api-reference/playground",
+          {
+            "group": "Payment intents",
+            "pages": [
+              "api-reference/payment-intents/create",
+              "api-reference/payment-intents/session",
+              "api-reference/payment-intents/scan",
+              "api-reference/payment-intents/confirm",
+              "api-reference/payment-intents/get",
+              "api-reference/payment-intents/receipt-token",
+              "api-reference/payment-intents/receipt"
+            ]
+          },
+          "api-reference/webhooks"
+        ]
+      },
+      {
+        "group": "Resources",
+        "pages": [
+          "changelog"
         ]
       }
     ]
@@ -145,6 +133,10 @@
     {
       "source": "/sdks/react-native",
       "destination": "/payments/react-native"
+    },
+    {
+      "source": "/how-zennopay-works",
+      "destination": "/introduction"
     }
   ],
   "logo": {
@@ -167,10 +159,9 @@
     ]
   },
   "background": {
-    "decoration": "windows",
     "color": {
-      "light": "#ffffff",
-      "dark": "#091422"
+      "light": "#FAFAF8",
+      "dark": "#101113"
     }
   },
   "navbar": {
@@ -182,18 +173,46 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Console",
+      "label": "Open Console",
       "href": "https://console.zennopay.com"
     }
   },
   "footer": {
     "socials": {
       "website": "https://zennopay.com"
-    }
+    },
+    "links": [
+      {
+        "header": "Zennopay",
+        "items": [
+          {
+            "label": "Website",
+            "href": "https://zennopay.com"
+          },
+          {
+            "label": "Console",
+            "href": "https://console.zennopay.com"
+          }
+        ]
+      },
+      {
+        "header": "Help",
+        "items": [
+          {
+            "label": "Contact support",
+            "href": "mailto:support@zennopay.com"
+          },
+          {
+            "label": "Sandbox access",
+            "href": "mailto:partners@zennopay.com"
+          }
+        ]
+      }
+    ]
   },
   "fonts": {
     "heading": {
-      "family": "Space Grotesk"
+      "family": "Inter Tight"
     },
     "body": {
       "family": "Inter"
