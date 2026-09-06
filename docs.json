@@ -14,12 +14,17 @@
       "og:site_name": "Zennopay Docs",
       "og:title": "Zennopay Docs \u2014 QR Payments and Platform Payouts",
       "og:description": "Integrate cross-border QR Payments with a native PaymentSheet or send asynchronous bank payouts with the Platform Payouts API.",
-      "og:image": "https://docs.zennopay.com/images/og-image.png",
+      "og:image": "https://docs.zennopay.com/images/og-docs-glass-v2.png",
       "og:type": "website",
       "twitter:card": "summary_large_image",
       "twitter:title": "Zennopay Docs \u2014 QR Payments and Platform Payouts",
       "twitter:description": "Developer documentation for Zennopay QR Payments and Platform Payouts.",
-      "twitter:image": "https://docs.zennopay.com/images/og-image.png"
+      "twitter:image": "https://docs.zennopay.com/images/og-docs-glass-v2.png",
+      "og:image:alt": "Zennopay documentation for QR Payments and Platform Payouts, with glass QR and bank payout illustrations.",
+      "twitter:image:alt": "Zennopay documentation for QR Payments and Platform Payouts, with glass QR and bank payout illustrations.",
+      "og:image:type": "image/png",
+      "og:image:width": "1731",
+      "og:image:height": "909"
     }
   },
   "navigation": {
