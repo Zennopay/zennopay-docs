@@ -342,6 +342,88 @@
       }
     },
     "/v1/beneficiaries": {
+      "get": {
+        "summary": "List beneficiaries",
+        "operationId": "listBeneficiaries",
+        "tags": [
+          "Beneficiaries"
+        ],
+        "description": "List beneficiaries for the authenticated partner and environment. Returns at most limit entries; no cursor pagination.",
+        "security": [
+          {
+            "hmacAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/HmacKeyId"
+          },
+          {
+            "$ref": "#/components/parameters/HmacTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/HmacNonce"
+          },
+          {
+            "$ref": "#/components/parameters/HmacSignature"
+          },
+          {
+            "$ref": "#/components/parameters/PayoutModeHeader"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Beneficiary list, with status on every entry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/Beneficiary"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "status"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/PayoutInvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationFailed"
+          },
+          "503": {
+            "$ref": "#/components/responses/PayoutUnavailable"
+          }
+        }
+      },
       "post": {
         "summary": "Create beneficiary",
         "description": "Create a reusable bank destination in the authenticated tenant and environment. The full account number is never returned.",
@@ -888,6 +970,7 @@
           "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
           "bank_code": { "type": "string" },
           "account_last4": { "type": "string", "minLength": 1, "maxLength": 4 },
+          "status": { "type": "string", "enum": ["active", "disabled"], "description": "Included in list responses." },
           "created_at": { "type": "string", "format": "date-time" }
         }
       },

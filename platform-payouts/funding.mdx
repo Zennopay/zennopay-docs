@@ -1,0 +1,158 @@
+---
+title: "Fund your payout balance"
+description: "Deposit USD, request conversion, and check the local funds available for payouts."
+sidebarTitle: "Fund your balance"
+---
+
+Platform Payouts draws from the available balance in the payout currency.
+Funding has two steps: deposit USD, then request conversion into the currency
+you need. A credited USD deposit does not automatically become VND, THB, or PHP.
+
+Funding must be enabled for your account and environment. For sandbox tests,
+ask Zennopay to arrange test deposits and settlement; do not send real money
+to sandbox instructions.
+
+## Use the Console
+
+1. Open **Balances** in the [Console](https://console.zennopay.com) and choose
+   **Add funds**.
+2. Enter the USD amount. Use the returned beneficiary name, account details,
+   and unique deposit reference when arranging the bank transfer.
+3. Wait for the deposit to be credited to your USD balance.
+4. Choose **Convert & reserve**, enter a USD amount, and select the payout
+   currency. Submitting the request reserves USD immediately.
+5. Wait for Zennopay operations to confirm settlement of the quoted local
+   amount. Check the available local balance before creating a payout.
+
+Use the beneficiary name exactly as returned in the funding instructions.
+Each deposit has its own `ZPF-...` reference; include it with the transfer so
+Zennopay can match the receipt to your deposit.
+
+## Check balances with the API
+
+All endpoints below use [HMAC authentication](/authentication) and the
+[base URL](/api-reference/environments) for your environment.
+
+```http
+GET /v1/funding_overview
+```
+
+The response contains `account` and `balances`. `account` is `null` when an
+active funding account is unavailable. When present, it includes the bank
+name, account name, USD currency, routing number, masked account number, and
+status. Full transfer instructions are returned when you create a funding
+request.
+
+Each entry in `balances` contains:
+
+| Field | Meaning |
+|---|---|
+| `currency` | Currency of this balance. |
+| `balance_amount` | Total credited balance, including reserved funds. |
+| `reserved_amount` | Funds committed to an outstanding operation. |
+| `available_amount` | `balance_amount - reserved_amount`; funds available for a new operation. |
+
+All amounts are base-10 int64 strings in minor units. USD uses cents, VND uses
+whole dong, and THB/PHP use hundredths. Read the entry for the payout currency;
+do not combine currencies or use the USD balance to authorize a local payout.
+
+## Declare a USD deposit
+
+```http
+POST /v1/funding_requests
+Idempotency-Key: deposit-20260905-001
+Content-Type: application/json
+```
+
+```json
+{ "amount_usd_cents": "10000" }
+```
+
+`"10000"` means USD 100.00. The amount must be a positive int64 string without
+decimals or leading zeroes. `Idempotency-Key` must contain 1–255 printable
+ASCII characters.
+
+A new request returns `201 Created` with `funding_request` and
+`funding_instructions`. Save `funding_request.id` and use these instruction
+fields to arrange the transfer:
+
+| Field | Use |
+|---|---|
+| `beneficiary_name` | Name to use on the bank transfer. |
+| `bank_name`, `routing_number`, `account_number` | Returned bank destination. |
+| `beneficiary_reference` | Unique deposit reference to include with the transfer. |
+| `source_currency`, `source_amount` | USD and the declared amount in cents. |
+
+Creating the request records an expected deposit; it does not initiate a bank
+transfer. Keep full account details in authorized treasury workflows.
+
+Track the deposit with `GET /v1/funding_requests/{id}`. The response wraps the
+record in `funding_request`. `GET /v1/funding_requests?limit=50` returns a
+bounded `{ "data": [...] }` list; `limit` accepts 1–100 and defaults to 50.
+
+| Deposit status | Meaning |
+|---|---|
+| `authorized` | Deposit instructions issued; receipt has not been confirmed. |
+| `in_transit` | Incoming transfer is in progress. |
+| `received` | Receipt observed; credit is not yet available. |
+| `credited` | Funds credited in the record's `destination_currency`. New deposits credit USD. |
+| `returned` | Incoming funds were returned. |
+| `return_review` | A return needs review; contact support. |
+| `canceled` | The funding request was canceled. |
+
+Wait for `credited` and confirm the available USD balance before requesting
+conversion. Existing deposits from the earlier automatic conversion flow may
+have a VND destination; read the stored currency instead of assuming it.
+
+## Request conversion
+
+```http
+POST /v1/funding_conversions
+Idempotency-Key: conversion-20260905-001
+Content-Type: application/json
+```
+
+```json
+{
+  "amount_usd_cents": "10000",
+  "destination_currency": "VND"
+}
+```
+
+The API accepts `VND`, `THB`, or `PHP` as a destination currency. A usable quote,
+settlement arrangement, and payout destination must also be enabled for your
+account. An accepted currency code does not establish live payout coverage.
+
+A new request returns `202 Accepted` with `conversion` and `replay: false`.
+The conversion records the source and destination amounts, currencies, FX
+rate, ID, and status. Its initial status is `reserved`: USD is reserved, and
+the local amount is awaiting operations settlement.
+
+Use `GET /v1/funding_conversions?limit=50` to track the record by its ID.
+The response is `{ "data": [...] }`; `limit` accepts 1–100 and defaults to 50.
+There is currently no single-conversion GET endpoint.
+
+Wait for `settled`, then read `GET /v1/funding_overview` again to verify the
+available local balance. A pending request or quote is not spendable money.
+If settlement remains unresolved or reports `amount_mismatch`, contact
+support with the conversion ID and keep tracking the original request.
+
+## Retry and recover
+
+For either create endpoint, identical input with the original idempotency key
+returns `200 OK` and `Idempotent-Replayed: true`. Reusing a key with different
+input returns `409 idempotency_conflict`. Generate a fresh HMAC timestamp,
+nonce, and signature for every retry while preserving the business key.
+
+| Error | Action |
+|---|---|
+| `invalid_request` | Check the amount, currency, and idempotency key. |
+| `account_unavailable` | Ask Zennopay to confirm funding account activation. |
+| `insufficient_balance` | Check available USD; reserved funds cannot be reused. |
+| `quote_unavailable` | Confirm conversion availability with Zennopay. |
+| `idempotency_conflict` | Recover the original operation; do not overwrite its input. |
+| `not_found` | Check the funding ID, account, and environment. |
+| `configuration_error` | Contact support if the funding service remains unavailable. |
+
+Once local funds are available, continue with the
+[Platform Payouts quickstart](/platform-payouts/quickstart).

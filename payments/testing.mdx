@@ -1,6 +1,7 @@
 ---
 title: "Test your integration"
 description: "Run the whole payment flow in the sandbox — no camera, no real money — before going live."
+sidebarTitle: "Sandbox testing"
 ---
 
 Everything the PaymentSheet does in production it also does in the sandbox:
@@ -40,8 +41,8 @@ access, so the flow is always completable.
   <Step title="Sandbox end-to-end">
     Run the sandbox config with a session from your sandbox backend and a
     real VietQR payload (paste-QR works fine). Delivery runs on the sandbox
-    rail and the intent reaches `captured` — assert your `completed` handling
-    debits your ledger and renders the receipt, and that your
+    rail and the intent reaches `captured`. Assert your `completed` handling
+    refreshes wallet state from your backend and renders the receipt, and that your
     [webhook](/api-reference/webhooks) endpoint received
     `payment_intent.captured`.
   </Step>
@@ -63,9 +64,8 @@ access, so the flow is always completable.
     `failed` with `limit_exceeded`.
   </Step>
   <Step title="Pending and reconciliation">
-    If status polling times out, the result is `pending` (Flutter and React
-    Native) or `failed` with `timed_out` (iOS and Android) — the payment may
-    still settle. Verify you reconcile via the webhook or
+    If status polling times out or the user leaves during processing, current
+    SDKs return `pending` on every platform. The payment may still settle. Verify you reconcile via the webhook or
     `GET /v1/payment_intents/:id` rather than assuming a terminal failure.
   </Step>
 </Steps>

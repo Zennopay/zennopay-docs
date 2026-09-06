@@ -1,57 +1,93 @@
 ---
-title: "Build with Zennopay"
-sidebarTitle: "Home"
-description: "Developer documentation for QR Payments and Platform Payouts."
-mode: "wide"
+title: "Zennopay Documentation"
+sidebarTitle: "Welcome"
+description: "Guides and API references for QR Payments and Platform Payouts."
+mode: "custom"
+hideFooterPagination: true
 ---
 
-Zennopay provides two payment products behind one server-to-server trust model.
-Choose the flow that matches what your application needs to move.
+<div className="zp-home">
+  <section className="zp-hero" aria-labelledby="welcome-title">
+    <div className="zp-hero-copy">
+      <h1 id="welcome-title">Build with Zennopay</h1>
+      <p>Add merchant QR payments to your app and bank payouts to your platform. Find everything you need to integrate, test, and manage your payments.</p>
+      <div className="zp-actions">
+        <a className="zp-button zp-button-primary" href="/quickstart">Get started <span aria-hidden="true">→</span></a>
+        <a className="zp-button" href="#guides">Browse guides</a>
+      </div>
+    </div>
+    <div className="zp-start">
+      <h2><Icon icon="rocket" size={20} /> Start building</h2>
+      <p>Take your first integration through sandbox.</p>
+      <div className="zp-start-links">
+        <a href="/quickstart"><Icon icon="qrcode" size={16} /> QR quickstart</a>
+        <a href="/platform-payouts/quickstart"><Icon icon="money-bill-transfer" size={16} /> Payout quickstart</a>
+        <a href="/authentication"><Icon icon="key" size={16} /> Authentication</a>
+        <a href="/platform-payouts/funding"><Icon icon="wallet" size={16} /> Fund your balance</a>
+        <a className="zp-start-wide" href="/api-reference/overview"><Icon icon="code" size={16} /> Explore the API <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
 
-## QR Payments
+  <section className="zp-home-section" aria-labelledby="products">
+    <h2 id="products">Products</h2>
+    <p>Choose what you want to build.</p>
+    <div className="zp-product-grid">
+      <a className="zp-product" href="/qr-payments/overview">
+        <div><h3>QR Payments</h3><p>Let users scan merchant QR codes and pay inside your app with PaymentSheet.</p><span className="zp-product-link">Read the docs <span aria-hidden="true">→</span></span></div>
+        <img src="/images/products/qr-payments-glass.webp" srcSet="/images/products/qr-payments-glass-480.webp 480w, /images/products/qr-payments-glass.webp 960w" sizes="200px" alt="" width="960" height="640" decoding="async" />
+      </a>
+      <a className="zp-product" href="/platform-payouts/overview">
+        <div><h3>Platform Payouts</h3><p>Send bank payouts from your backend and track every transfer through the API.</p><span className="zp-product-link">Read the docs <span aria-hidden="true">→</span></span></div>
+        <img src="/images/products/platform-payouts-glass.webp" srcSet="/images/products/platform-payouts-glass-480.webp 480w, /images/products/platform-payouts-glass.webp 960w" sizes="200px" alt="" width="960" height="640" decoding="async" />
+      </a>
+    </div>
+  </section>
 
-Embed a native PaymentSheet that scans a supported merchant QR, validates it
-server-side, confirms the wallet debit once, and tracks local merchant delivery
-asynchronously.
+  <section className="zp-home-section" aria-labelledby="guides">
+    <h2 id="guides">Guides</h2>
+    <p>Practical steps to build and operate your integration.</p>
+    <div className="zp-guide-grid">
+      <a className="zp-guide" href="/payments/session-endpoint">
+        <h3><Icon icon="server" size={20} /> Create a checkout session</h3>
+        <p>Connect your backend to PaymentSheet with a short-lived session token.</p>
+      </a>
+      <a className="zp-guide" href="/platform-payouts/quickstart">
+        <h3><Icon icon="money-bill-transfer" size={20} /> Send your first bank payout</h3>
+        <p>Create a beneficiary, submit a payout, and track its delivery.</p>
+      </a>
+      <a className="zp-guide" href="/platform-payouts/funding">
+        <h3><Icon icon="wallet" size={20} /> Fund your payout balance</h3>
+        <p>Deposit USD and convert it into the local currency you need.</p>
+      </a>
+      <a className="zp-guide" href="/concepts/settlement">
+        <h3><Icon icon="arrows-rotate" size={20} /> Reconcile your payments</h3>
+        <p>Handle pending payments, retries, and out-of-order webhooks.</p>
+      </a>
+      <a className="zp-guide" href="/payments/reopen-receipt">
+        <h3><Icon icon="receipt" size={20} /> Reopen a payment receipt</h3>
+        <p>Show the latest payment status from your app's transaction history.</p>
+      </a>
+      <a className="zp-guide" href="/payments/testing">
+        <h3><Icon icon="flask" size={20} /> Test your QR integration</h3>
+        <p>Exercise checkout, session expiry, limits, and payment recovery.</p>
+      </a>
+    </div>
+  </section>
 
-<CardGroup cols={2}>
-  <Card title="Start with QR Payments" icon="qrcode" href="/qr-payments/overview">
-    Review availability, authentication, money types, scan/confirm semantics,
-    statuses, errors, and the sandbox checklist.
-  </Card>
-  <Card title="Integrate PaymentSheet" icon="mobile" href="/payments/overview">
-    Pick iOS, Android, Flutter, or React Native and present the complete native
-    checkout flow.
-  </Card>
-</CardGroup>
+  <section className="zp-home-section" aria-labelledby="products-and-reference">
+    <h2 id="products-and-reference">Tools &amp; reference</h2>
+    <p>Find the SDK, availability, and API details for your integration.</p>
+    <div className="zp-reference-grid">
+      <a href="/payments/overview"><Icon icon="mobile" size={20} /><div><h3>PaymentSheet</h3><p>Native checkout for four platforms.</p></div></a>
+      <a href="/concepts/corridors"><Icon icon="globe" size={20} /><div><h3>QR availability</h3><p>Supported schemes and currencies.</p></div></a>
+      <a href="/api-reference/overview"><Icon icon="code" size={20} /><div><h3>API reference</h3><p>Endpoints, fields, and response states.</p></div></a>
+      <a href="/api-reference/webhooks"><Icon icon="webhook" size={20} /><div><h3>Payment webhooks</h3><p>Verify events and track outcomes.</p></div></a>
+    </div>
+  </section>
 
-## Platform Payouts
-
-Send an asynchronous bank payout from a prefunded balance. Store or inline a
-beneficiary, create an idempotent payout, then poll or consume signed webhooks
-until its terminal state.
-
-<CardGroup cols={2}>
-  <Card title="Start with Platform Payouts" icon="money-bill-transfer" href="/platform-payouts/overview">
-    Understand the product lifecycle, isolation model, availability, and live
-    prerequisites.
-  </Card>
-  <Card title="Run the quickstart" icon="bolt" href="/platform-payouts/quickstart">
-    Create a sandbox beneficiary and payout, then verify idempotent retries and
-    asynchronous status.
-  </Card>
-</CardGroup>
-
-## Shared foundations
-
-<CardGroup cols={3}>
-  <Card title="Authentication" icon="key" href="/authentication">
-    Sign server-to-server calls with the exact HMAC canonical request.
-  </Card>
-  <Card title="Environments" icon="server" href="/api-reference/environments">
-    Keep sandbox and live credentials, balances, and resources separate.
-  </Card>
-  <Card title="API reference" icon="code" href="/api-reference/overview">
-    Find shared conventions and the product-specific endpoint references.
-  </Card>
-</CardGroup>
+  <footer className="zp-home-footer">
+    <span>Zennopay developer documentation</span>
+    <div><a href="https://console.zennopay.com">Open Console</a><a href="https://zennopay.com">Website</a><a href="mailto:support@zennopay.com">Support</a></div>
+  </footer>
+</div>

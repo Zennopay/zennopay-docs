@@ -36,7 +36,7 @@ CameraX + ML Kit, on-device.
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("in.zennopay:sdk:0.6.0")
+    implementation("in.zennopay:sdk:0.7.0")
 }
 ```
 
@@ -78,6 +78,9 @@ You can also set a process-wide default once with
 See [Environments](/api-reference/environments) for canonical and supported
 alternate hosts.
 
+The API's `session_token` value goes into the SDK's `sessionJwt` argument.
+Pass it unchanged; Zennopay mints the token for you.
+
 ## Present the PaymentSheet
 
 With a checkout session from your backend in hand, your app makes one call.
@@ -110,6 +113,7 @@ fun PayButton(session: CheckoutSession, viewModel: WalletViewModel) {
     ) { result ->
         when (result) {
             is PaymentResult.Completed -> viewModel.onPaid(result)
+            is PaymentResult.Pending   -> viewModel.onPaymentPending(result.intentId)
             is PaymentResult.Canceled  -> Unit          // no money moved
             is PaymentResult.Failed    -> viewModel.onPaymentFailed(result.error)
         }
@@ -137,12 +141,13 @@ class WalletActivity : ComponentActivity() {
         Zennopay.presentCheckout(
             activity = this,
             intentId = intentId,
-            sessionToken = sessionToken,
+            sessionJwt = sessionToken,
             refreshSession = { id -> walletApi.remintSessionToken(id) },
             config = ZennopayConfig.SANDBOX,
         ) { result ->
             when (result) {
                 is PaymentResult.Completed -> showReceipt(result)
+                is PaymentResult.Pending   -> showPending(result.intentId)
                 is PaymentResult.Canceled  -> Unit      // no money moved
                 is PaymentResult.Failed    -> showFailure(result.error)
             }
@@ -152,7 +157,7 @@ class WalletActivity : ComponentActivity() {
 ```
 
 The sheet runs in its own Activity, so it owns its lifecycle end to end; your
-callback fires exactly once with the terminal result. The session token is
+callback fires exactly once with the checkout result. The session token is
 handed to that Activity **in memory** — it is never serialized into the
 launching `Intent`, so it can't leak via logcat or recents.
 
@@ -180,6 +185,8 @@ sealed class PaymentResult {
 
     data class Failed(val intentId: String?, val error: ZennopayError) : PaymentResult()
 
+    data class Pending(val intentId: String) : PaymentResult()
+
     data class Canceled(val intentId: String?) : PaymentResult()
 }
 ```
@@ -187,7 +194,8 @@ sealed class PaymentResult {
 `ZennopayError` is a sealed taxonomy with stable `code` strings
 (`InvalidJwt`, `IntentMismatch`, `JwtExpired`, `MalformedToken`,
 `InvalidIssuer`, quote/confirm/network cases, …) — exhaustive in a `when`.
-On a timeout the payment is effectively *pending* — it may still settle;
+`PaymentResult.Pending` means the user left during processing or polling
+timed out. The payment may still settle;
 reconcile via your [webhook](/api-reference/webhooks) or
 `GET /v1/payment_intents/:id` rather than assuming a terminal failure.
 
@@ -214,7 +222,7 @@ val appearance = ZennopayAppearance(
 Zennopay.presentCheckout(
     activity = this,
     intentId = session.intentId,
-    sessionToken = session.sessionToken,
+    sessionJwt = session.sessionToken,
     appearance = appearance,
 ) { result -> /* … */ }
 ```

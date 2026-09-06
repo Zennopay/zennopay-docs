@@ -4,7 +4,7 @@ api: "POST /v1/payment_intents/{intent_id}/session"
 description: "Mint a fresh session token for an existing intent — the re-mint the SDK's refreshSession hook depends on."
 ---
 
-When a [session token](/authentication#client-session-token) expires mid-flow,
+When a [session token](/authentication#qr-payments-client-session-token) expires mid-flow,
 don't create a new intent — re-mint a token for the **same** one. Zennopay
 preserves the intent's scan / quote / confirm state across the re-mint, so the
 user's flow continues uninterrupted.
@@ -37,8 +37,10 @@ Server-to-server only; HMAC-signed. See [Authentication](/authentication).
 
 <ParamField path="intent_id" type="string" required>
   The intent to re-mint a session token for, e.g. `0198f31a-7c2b-7d91-9fa2-112233445566`. The
-  partner identified by the HMAC key must own it, and it must not be in a
-  terminal state (`captured`, `failed`, `expired`, `cancelled`).
+  partner identified by the HMAC key must own it. Refreshing a token does not
+  reset the intent or start another payment. For a completed payment, use a
+  [receipt token](/api-reference/payment-intents/receipt-token) to reopen its
+  receipt.
 </ParamField>
 
 ## Body

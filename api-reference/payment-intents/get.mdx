@@ -23,8 +23,21 @@ do not consume the token `jti`.
 }
 ```
 
-`status` is one of `created`, `authorized`, `captured`, `failed`, `expired`,
-`refunded`, or `reversed`. Continue polling non-terminal `authorized`.
+## Payment lifecycle
+
+| Status | Meaning | Next action |
+|---|---|---|
+| `created` | Intent exists; payment is not yet confirmed. | Present PaymentSheet. |
+| `authorized` | Wallet execution or merchant delivery is in progress or under recovery. | Continue tracking the existing intent. |
+| `captured` | Merchant delivery succeeded. | Reconcile the completed payment. |
+| `failed` | Payment reached a final failure. | Reconcile the failure. |
+| `expired` | Intent expired without completion. | End this checkout attempt. |
+| `refunded` | Payment was refunded. | Reconcile the returned funds. |
+| `reversed` | Delivery was reversed. | Reconcile the reversal. |
+
+`created` and `authorized` are non-terminal. A captured payment may later be
+refunded or reversed, so continue processing subsequent events. An SDK
+`pending` result is a client outcome; the stored intent keeps its API status.
 
 ## Partner/HMAC response
 
@@ -39,5 +52,6 @@ string, including:
 
 Fields with no value are `null`.
 
-Cross-partner access is rejected. See [QR Payments](/qr-payments/overview) for
-the lifecycle and shared error envelope.
+Cross-partner access is rejected. Use [Reconciliation](/concepts/settlement)
+for recovery guidance and [QR Payments webhooks](/api-reference/webhooks) for
+signed status events.

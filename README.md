@@ -12,21 +12,21 @@ prefunded balance.
 | Section | Purpose |
 |---|---|
 | `introduction.mdx` | Product overview and routes into each integration |
-| `qr-payments/` | Canonical QR Payments contract, availability, lifecycle, and errors |
+| `qr-payments/` | QR Payments product overview and integration guides |
 | `quickstart.mdx` | QR Payments sandbox tutorial |
-| `how-zennopay-works.mdx` | Product comparison and shared architecture |
 | `payments/` | Accept payments: PaymentSheet overview, session endpoint, iOS, Android, Flutter, React Native, testing |
 | `authentication.mdx` | HMAC-only partner auth + the Zennopay-minted session token, with test vectors |
 | `concepts/` | QR funds flow and corridors, plus shared reconciliation guidance |
 | `fundamentals/` | QR Payments per-user corridor limits |
-| `platform-payouts/` | Platform Payouts overview, tutorial, field reference, webhooks, and sandbox tests |
+| `platform-payouts/` | Platform Payouts overview, USD deposits and conversion, tutorial, field reference, webhooks, and sandbox tests |
 | `api-reference/` | Shared conventions and downloadable QR Payments and Platform Payouts OpenAPI reference |
 | `changelog.mdx` | Release notes |
 
+The retired `/how-zennopay-works` page redirects to the introduction.
 Old `/sdks/*` URLs redirect to `/payments/*` via the `redirects` array in
 `docs.json`.
 
-Each concept has one canonical owner: overview pages explain product choice,
+Each concept has one canonical owner: overview pages explain each product and its integration steps,
 quickstarts teach a happy path, API pages define fields and states, SDK pages
 cover client integration, and `concepts/settlement.mdx` owns shared
 reconciliation guidance.
@@ -34,12 +34,22 @@ reconciliation guidance.
 ## Preview locally
 
 ```bash
-npm i -g mintlify
-mintlify dev
+npx mintlify dev
 ```
 
 The site renders at [http://localhost:3000](http://localhost:3000). Mintlify
 hot-reloads on file save.
+
+## Validate changes
+
+```bash
+npx mintlify validate
+npx mintlify broken-links
+```
+
+Cross-check API behavior against `Zennopay/zennopay-mono-mvp` and SDK examples
+against the relevant SDK release. Funding routes are documented in
+`platform-payouts/funding.mdx`; they are not yet included in `openapi.json`.
 
 ## Deploy
 
@@ -57,3 +67,22 @@ Contact the docs maintainers if the integration needs reconnecting.
   underlying spec lands, fill the page and remove the callout in the same PR.
 - Public docs must not include private commercial terms, provider-contract
   details, routing economics, customer/account data, or internal volumes.
+
+## Page formatting
+
+The docs use Mintlify Maple with a persistent sidebar, Inter Tight headings, and
+Zennopay accents. `style.css` styles the welcome page, product artwork, and code typography.
+
+- Welcome: introduction and quick links, illustrated products, guide cards, then reference links.
+- Guides: state the outcome, prerequisites, numbered steps, then next actions.
+- Product overviews: explain the product before linking to related guides.
+- API references: keep field tables, code samples, statuses, and errors.
+- Use short sidebar titles and preserve existing routes when reorganizing.
+
+The layout was adapted from https://docs.treasury.sh/ at the user's request.
+
+Product artwork in `images/products/` is reused unchanged from the Zennopay landing page (`public/illustrations/`). Keep the 480px and 960px WebP variants together when updating these assets.
+
+Typography follows the landing page: **Inter Tight** for headings, **Inter** for body text, and **JetBrains Mono** for code. Heading and body fonts are configured in `docs.json`; the code font is loaded in `style.css`.
+
+Buttons reuse the landing page’s pill shape and theme-aware iris/lavender gradients. Liquid glass is limited to the welcome quickstart panel, product cards, and overview artwork panels; guide cards use quieter tinted surfaces. CSS includes reduced-motion support and an opaque fallback for browsers without backdrop blur.

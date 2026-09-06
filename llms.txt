@@ -1,11 +1,10 @@
 # Zennopay Documentation
 
-> Zennopay provides two products through one HMAC-authenticated API foundation. QR Payments embeds a native merchant-QR checkout in a partner app. Platform Payouts lets a partner backend send asynchronous bank transfers to beneficiaries from an environment-scoped prefunded balance. Their resources, statuses, destinations, and webhooks are separate. Every page below is available as plain Markdown by appending `.md` to its URL.
+> Add merchant QR payments to a mobile app with QR Payments, or send bank payouts from a prefunded balance with Platform Payouts. Backend API calls use HMAC authentication. Every page below is available as plain Markdown by appending `.md` to its URL.
 
 ## Start here
 
 - [Build with Zennopay](https://docs.zennopay.com/introduction.md): Choose QR Payments or Platform Payouts.
-- [How the products fit together](https://docs.zennopay.com/how-zennopay-works.md): Compare resource, client, money, and delivery models.
 - [Authentication](https://docs.zennopay.com/authentication.md): Implement the shared HMAC signing contract and QR-specific client tokens.
 - [Environments](https://docs.zennopay.com/api-reference/environments.md): Keep sandbox and live credentials, balances, and resources isolated.
 - [Reconciliation](https://docs.zennopay.com/concepts/settlement.md): Recover authoritative state after retries, duplicates, and timeouts.
@@ -29,7 +28,7 @@
 ## API reference
 
 - [API reference](https://docs.zennopay.com/api-reference/overview.md): Shared conventions and product-specific reference routes.
-- [API playground](https://docs.zennopay.com/api-reference/playground.md): Exercise the QR Payments and Platform Payouts OpenAPI contract in sandbox.
+- [Try the API](https://docs.zennopay.com/api-reference/playground.md): Send signed sandbox requests and troubleshoot errors.
 
 ### QR Payments
 
@@ -45,8 +44,9 @@
 ## Platform Payouts
 
 - [Platform Payouts](https://docs.zennopay.com/platform-payouts/overview.md): Product overview, lifecycle, and integration map.
+- [Fund your payout balance](https://docs.zennopay.com/platform-payouts/funding.md): Deposit USD, request a conversion, and check available local funds.
 - [Platform Payouts quickstart](https://docs.zennopay.com/platform-payouts/quickstart.md): Create and track a sandbox payout.
-- [Beneficiaries](https://docs.zennopay.com/platform-payouts/beneficiaries.md): Create reusable bank destinations.
+- [Beneficiaries](https://docs.zennopay.com/platform-payouts/beneficiaries.md): Create and list reusable bank destinations.
 - [Payouts API](https://docs.zennopay.com/platform-payouts/payouts.md): Create, retrieve, list, and interpret payouts.
 - [Payout webhooks](https://docs.zennopay.com/platform-payouts/webhooks.md): Verify payout lifecycle events.
 - [Test Platform Payouts](https://docs.zennopay.com/platform-payouts/testing.md): Exercise deterministic sandbox outcomes.

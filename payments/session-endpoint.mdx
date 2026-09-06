@@ -1,6 +1,7 @@
 ---
 title: "Build your session endpoint"
 description: "The one backend route the PaymentSheet needs: create a payment intent (HMAC), return the session token Zennopay mints for you."
+sidebarTitle: "Checkout sessions"
 ---
 
 Every [PaymentSheet](/payments/overview) presentation starts with one round-trip
@@ -118,9 +119,16 @@ side — read it off the response and hand it to your app:
 
 ## Reference implementation (Node.js)
 
-A complete Express route, modeled on the reference partner backend
-(`zennopay-partner-starter` **v0.2.0+**, HMAC-only). No dependencies beyond
-`node:crypto`.
+An Express integration example using `express` and Node's `node:crypto`.
+The application helpers below are placeholders for your authentication,
+wallet authorization, durable checkout store, and intent-ownership checks.
+Use the [partner starter](https://github.com/Zennopay/zennopay-partner-starter)
+for a runnable backend.
+
+`getOrCreateCheckoutOperation` must bind a checkout attempt to the authenticated
+user, persist one idempotency key, and return the same authorized amount and
+attestations on retries. `saveCheckoutIntent` records the intent's ownership
+before the session is returned to the app.
 
 ```ts
 import crypto from "node:crypto";
@@ -160,7 +168,8 @@ app.use(express.json());
 
 app.post("/wallet/checkout-session", async (req, res) => {
   const user = await requireAuthedUser(req);            // your app auth
-  const amountUsdCents = authorizeSpend(user, req.body); // your wallet logic
+  const operation = await getOrCreateCheckoutOperation(user, req.body);
+  const amountUsdCents = operation.amountUsdCents; // server-authorized wallet amount
 
   // Create the intent (HMAC-signed, idempotent). Attestations come from
   // YOUR real KYC + sanctions systems — Zennopay trusts these fields.
@@ -171,13 +180,13 @@ app.post("/wallet/checkout-session", async (req, res) => {
     kyc_attestation: {
       verified: true,
       method: "your_kyc_v2",
-      verified_at: user.kycVerifiedAt,  // ISO 8601
+      verified_at: operation.kycVerifiedAt, // persisted attestation for this attempt
       id_type: "passport",              // which gov ID the user was KYC'd on
       id_country: "IN",
     },
     sanctions_attestation: {
       clean: true,
-      screened_at: user.sanctionsScreenedAt,
+      screened_at: operation.sanctionsScreenedAt,
     },
   });
 
@@ -185,16 +194,17 @@ app.post("/wallet/checkout-session", async (req, res) => {
     method: "POST",
     headers: {
       ...hmacHeaders("POST", "/v1/payment_intents", body),
-      "Idempotency-Key": crypto.randomUUID(),
+      "Idempotency-Key": operation.idempotencyKey,
     },
     body,
   });
-  if (resp.status !== 201) {
+  if (!resp.ok) {
     return res.status(502).json({ error: "intent_creation_failed" });
   }
 
   // Zennopay minted the session token for us — just pass it through.
   const { intent_id, session_token } = await resp.json();
+  await saveCheckoutIntent(operation.id, user.id, intent_id);
   res.json({ intentId: intent_id, sessionToken: session_token });
 });
 
@@ -204,7 +214,7 @@ app.post("/wallet/checkout-session", async (req, res) => {
 app.post("/wallet/checkout-session/:intentId/refresh", async (req, res) => {
   const user = await requireAuthedUser(req);
   const { intentId } = req.params;
-  assertUserOwnsIntent(user, intentId); // look up your own record of the intent
+  await assertUserOwnsIntent(user, intentId); // look up your own record of the intent
 
   const path = `/v1/payment_intents/${intentId}/session`;
   const body = JSON.stringify({

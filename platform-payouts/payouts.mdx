@@ -72,6 +72,16 @@ to the destination, `fee_details` contains the fee components, `fee` is their
 sum, and `total` is the amount reserved from prefund. All five values use the
 same int64-string money format; configured values vary by enabled route.
 
+| Configured fee handling | Recipient receives | Balance reservation (`total`) |
+|---|---|---|
+| Fees charged to your platform | `amount` | `amount + fee` |
+| Fees deducted from the payout | `amount - fee` | `amount` |
+
+Fee handling is configured for the account and route; it is not a create-payout
+request field. Check `recipient_amount` and `total` in the response when
+reconciling. [Fund the payout currency](/platform-payouts/funding) before
+creating a payout.
+
 ### Idempotency
 
 `Idempotency-Key` is required, non-empty, and at most 255 characters. The

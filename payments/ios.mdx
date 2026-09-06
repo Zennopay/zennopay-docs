@@ -43,7 +43,7 @@ your app target. Or, in your own `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Zennopay/zennopay-ios-sdk", from: "0.6.0")
+    .package(url: "https://github.com/Zennopay/zennopay-ios-sdk", from: "0.7.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: ["Zennopay"])
@@ -53,7 +53,7 @@ targets: [
 Or with **CocoaPods** — add to your `Podfile` and run `pod install`:
 
 ```ruby
-pod 'Zennopay', '~> 0.6.0'
+pod 'Zennopay', '~> 0.7.0'
 ```
 
 ### Declare camera usage
@@ -91,6 +91,9 @@ config: ZennopayConfig(apiBaseURL: URL(string: "http://localhost:3000")!)
 See [Environments](/api-reference/environments) for canonical and supported
 alternate hosts.
 
+The API's `session_token` value goes into the SDK's `sessionJWT` argument.
+Pass it unchanged; Zennopay mints the token for you.
+
 ## Present the PaymentSheet
 
 With a checkout session from your backend in hand, your app makes one call:
@@ -114,11 +117,11 @@ final class WalletViewController: UIViewController {
             let session: CheckoutSession = try await api.post("/wallet/checkout-session")
 
             // 2. Present the PaymentSheet. The SDK owns everything from here
-            //    until the terminal result.
+            //    until the checkout result.
             Zennopay.presentCheckout(
                 from: self,
                 intentID: session.intentId,
-                sessionToken: session.sessionToken,
+                sessionJWT: session.sessionToken,
                 refreshSession: { intentID in
                     // Called if the session expires mid-flow (401). Ask your
                     // backend to re-mint a fresh token for the SAME intent
@@ -133,8 +136,10 @@ final class WalletViewController: UIViewController {
                 // 3. Delivered exactly once, on the main queue.
                 switch result {
                 case .completed(let intentID):
-                    // Money moved: debit your ledger, show your receipt row.
+                    // Refresh wallet state from your backend and show the receipt.
                     self.showReceipt(intentID: intentID)
+                case .pending(let intentID):
+                    self.showPending(intentID: intentID)
                 case .canceled:
                     // User backed out before confirming. No money moved.
                     break
@@ -168,15 +173,17 @@ public enum PaymentResult: Equatable, Sendable {
     case completed(intentID: String)
     /// Terminal non-success, or an unrecoverable in-sheet failure.
     case failed(intentID: String, error: ZennopayError)
-    /// User dismissed before a terminal outcome. No money moved.
+    /// Confirmed, with delivery still unresolved when the sheet closed.
+    case pending(intentID: String)
+    /// User dismissed before confirming.
     case canceled(intentID: String)
 }
 ```
 
 `ZennopayError` is a typed taxonomy (`invalidJWT`, `intentMismatch`,
 `jwtExpired`, `sessionExpired`, `quoteExpired`, `paymentFailed`, `timedOut`,
-`networkError`, …). On `.timedOut` the payment is effectively *pending* — it
-may still settle. Show a soft state and reconcile via your
+`networkError`, …). A `.pending` result means the user left during processing or polling timed
+out. The payment may still settle. Show a soft state and reconcile via your
 [webhook](/api-reference/webhooks) or `GET /v1/payment_intents/:id` rather
 than assuming a terminal failure.
 
@@ -201,7 +208,7 @@ appearance.logo = UIImage(named: "wordmark")
 Zennopay.presentCheckout(
     from: self,
     intentID: session.intentId,
-    sessionToken: session.sessionToken,
+    sessionJWT: session.sessionToken,
     appearance: appearance,
     config: .production
 ) { result in /* … */ }
